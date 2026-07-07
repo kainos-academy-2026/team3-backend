@@ -7,7 +7,6 @@
 	},
 	"files": {
 		"includes": ["**"],
- 		"excludes": ["dist", "dist/**"]
 	},
 	"formatter": {
 		"enabled": true,
