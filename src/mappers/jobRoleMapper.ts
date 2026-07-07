@@ -1,5 +1,6 @@
 import type { JobRole } from "@prisma/client";
 import type { JobRoleResponseDto } from "../dtos/jobRoleDto.js";
+import { toJobRoleStatusDto } from "../dtos/jobRoleDto.js";
 
 export class JobRoleMapper {
   toResponse(jobRole: JobRole): JobRoleResponseDto {
@@ -10,7 +11,7 @@ export class JobRoleMapper {
       capability: jobRole.capability,
       band: jobRole.band,
       closingDate: jobRole.closingDate,
-      status: jobRole.status,
+      status: toJobRoleStatusDto(jobRole.status),
     };
   }
 

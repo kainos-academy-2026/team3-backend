@@ -18,7 +18,7 @@ model JobRole {
   capability  String
   band        Int
   closingDate DateTime      @db.Date
-  status      JobRoleStatus @default(Open)
+  status      String
 }
 
 model Capability {
@@ -29,9 +29,4 @@ model Capability {
 model Band {
   nameId   Int    @id @default(autoincrement())
   bandName String
-}
-
-enum JobRoleStatus {
-  Open
-  Closed
 }
