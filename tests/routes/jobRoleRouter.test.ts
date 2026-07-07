@@ -1,15 +1,25 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import request from "supertest";
-import app from "../../src/app.js";
-import prisma from "../../src/prismaClient.js";
 
-vi.mock("../../src/prismaClient.js", () => ({
-	default: {
-		jobRole: {
-			findMany: vi.fn(),
-		},
+const mocks = vi.hoisted(() => ({
+	mockFindAllJobRoles: vi.fn(),
+}));
+
+vi.mock("../../src/daos/jobRoleDao.js", () => ({
+	JobRoleDao: class JobRoleDao {},
+}));
+
+vi.mock("../../src/mappers/jobRoleMapper.js", () => ({
+	JobRoleMapper: class JobRoleMapper {},
+}));
+
+vi.mock("../../src/services/jobRoleService.js", () => ({
+	JobRoleService: class JobRoleService {
+		findAllJobRoles = mocks.mockFindAllJobRoles;
 	},
 }));
+
+import app from "../../src/app.js";
 
 describe("GET /api/job-roles", () => {
 	beforeEach(() => {
@@ -17,13 +27,19 @@ describe("GET /api/job-roles", () => {
 	});
 
 	it("should return 200 with a list of job roles", async () => {
-		vi.mocked(prisma.jobRole.findMany).mockResolvedValueOnce([
+		mocks.mockFindAllJobRoles.mockResolvedValueOnce([
 			{
 				id: 1,
 				roleName: "Backend Engineer",
 				location: "Dublin",
-				capability: "Engineering",
-				band: 3,
+				capability: {
+					capabilityId: 10,
+					capabilityName: "Engineering",
+				},
+				band: {
+					bandId: 3,
+					bandName: "Band 3",
+				},
 				closingDate: new Date("2026-08-31"),
 				status: "Open",
 			},
@@ -37,14 +53,20 @@ describe("GET /api/job-roles", () => {
 			id: 1,
 			roleName: "Backend Engineer",
 			location: "Dublin",
-			capability: "Engineering",
-			band: 3,
+			capability: {
+				capabilityId: 10,
+				capabilityName: "Engineering",
+			},
+			band: {
+				bandId: 3,
+				bandName: "Band 3",
+			},
 			status: "Open",
 		});
 	});
 
 	it("should return 500 when the service throws", async () => {
-		vi.mocked(prisma.jobRole.findMany).mockRejectedValueOnce(new Error("db down"));
+		mocks.mockFindAllJobRoles.mockRejectedValueOnce(new Error("db down"));
 
 		const response = await request(app).get("/api/job-roles");
 
