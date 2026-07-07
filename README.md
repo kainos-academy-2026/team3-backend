@@ -7,6 +7,7 @@ Backend API for Team 3, built with Node.js, TypeScript, Express, Prisma 7, and P
 - Node.js 22+
 - npm
 - Docker Desktop (or Docker Engine with Compose)
+- DBeaver
  
 ## First-Time Setup
  
@@ -34,20 +35,27 @@ DATABASE_URL=url-here
 ```bash
 npm run db:up
 ```
+
+5. Add the new database connection to DBeaver
+```
+database: team3
+username: postgres
+password: password
+```
  
-5. Apply Prisma migrations:
+6. Apply Prisma migrations:
  
 ```bash
 npm run prisma:migrate
 ```
  
-6. Seed initial data:
+7. Seed initial data:
  
 ```bash
 npm run prisma:seed
 ```
  
-7. Start the API in development mode:
+8. Start the API in development mode:
  
 ```bash
 npm run dev
@@ -56,21 +64,62 @@ npm run dev
 You should see:
  
 ```text
-Server running on http://localhost:3000
+Server running on http://localhost:4000
 ```
  
 ## Verify Endpoints
  
 Use browser, Postman or curl.
  
-- Health check: `GET http://127.0.0.1:3000/health`
-- Job roles: `GET http://127.0.0.1:3000/api/job-roles`
+- Health check: `GET http://127.0.0.1:4000/health`
+- Job roles: `GET http://127.0.0.1:4000/api/job-roles`
  
 Example with curl:
  
 ```bash
-curl http://127.0.0.1:3000/health
-curl http://127.0.0.1:3000/api/job-roles
+curl http://127.0.0.1:4000/health
+curl http://127.0.0.1:4000/api/job-roles
+```
+
+## API Reference
+
+### GET /health
+
+Returns a simple liveness payload.
+
+Example response (`200 OK`):
+
+```json
+{
+	"status": "UP",
+	"timestamp": "2026-07-07T10:22:34.123Z"
+}
+```
+
+### GET /api/job-roles
+
+Returns all job roles.
+
+Example response (`200 OK`):
+
+```json
+[
+	{
+		"id": 1,
+		"roleName": "Software Engineer",
+		"location": "Belfast",
+		"capability": {
+			"capabilityId": 2,
+			"capabilityName": "Engineering"
+		},
+		"band": {
+			"bandId": 3,
+			"bandName": "Associate"
+		},
+		"closingDate": "2026-08-01",
+		"status": "Open"
+	}
+]
 ```
 
 ## Build
@@ -173,10 +222,10 @@ npm run ci:check
 2. Test with IPv4 explicitly:
  
 ```bash
-curl -v --max-time 3 http://127.0.0.1:3000/health
+curl -v --max-time 3 http://127.0.0.1:4000/health
 ```
  
-3. Check what process owns port 3000:
+3. Check what process owns port 4000:
  
 ```bash
 lsof -nP -iTCP:3000 -sTCP:LISTEN
@@ -185,7 +234,7 @@ lsof -nP -iTCP:3000 -sTCP:LISTEN
 4. If needed, run on another port:
  
 ```bash
-PORT=3001 npm run dev
+PORT=4001 npm run dev
 ```
  
 ### Empty array from /api/job-roles
