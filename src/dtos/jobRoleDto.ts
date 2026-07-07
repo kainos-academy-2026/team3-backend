@@ -6,7 +6,7 @@ export interface JobRoleResponseDto {
   location: string;
   capability: string;
   band: number;
-  closingDate: Date;
+  closingDate: string;
   status: "Open" | "Closed";
 }
 
