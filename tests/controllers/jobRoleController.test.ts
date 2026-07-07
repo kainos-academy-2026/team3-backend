@@ -1,9 +1,30 @@
 import type { JobRole } from "@prisma/client";
 import type { Request, Response } from "express";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const mockService = {
+	findAllJobRoles: vi.fn(),
+};
+
+const mockMapper = {
+	toResponseList: vi.fn(),
+};
+
+vi.mock("../../src/services/jobRoleService.js", () => ({
+	JobRoleService: vi.fn(function JobRoleServiceMock() {
+		return mockService;
+	}),
+}));
+
+vi.mock("../../src/mappers/jobRoleMapper.js", () => ({
+	JobRoleMapper: vi.fn(function JobRoleMapperMock() {
+		return mockMapper;
+	}),
+}));
+
 import { JobRoleController } from "../../src/controllers/jobRoleController.js";
-import { JobRoleMapper } from "../../src/mappers/jobRoleMapper.js";
-import { JobRoleService } from "../../src/services/jobRoleService.js";
+import type { JobRoleMapper } from "../../src/mappers/jobRoleMapper.js";
+import type { JobRoleService } from "../../src/services/jobRoleService.js";
 
 describe("JobRoleController", () => {
 	let controller: JobRoleController;
@@ -13,12 +34,14 @@ describe("JobRoleController", () => {
 	let res: Response;
 
 	beforeEach(() => {
+		vi.clearAllMocks();
+
 		jobRoleService = {
-			findAllJobRoles: vi.fn(),
+			findAllJobRoles: mockService.findAllJobRoles,
 		};
 
 		jobRoleMapper = {
-			toResponseList: vi.fn(),
+			toResponseList: mockMapper.toResponseList,
 		};
 
 		controller = new JobRoleController(
