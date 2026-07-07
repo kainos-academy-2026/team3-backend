@@ -1,59 +1,89 @@
 import "dotenv/config";
-import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaClient } from "@prisma/client";
 
 const connectionString = process.env.DATABASE_URL;
- if (!connectionString) throw new Error("DATABASE_URL is not set");
+if (!connectionString) throw new Error("DATABASE_URL is not set");
 
 const adapter = new PrismaPg({ connectionString });
 
 const prisma = new PrismaClient({ adapter });
 
 async function main(): Promise<void> {
-    await prisma.jobRole.createMany({
-        data: [
-            {
-                id: 1,
-                roleName: "Backend Engineer",
-                location: "Dublin",
-                capability: "Engineering",
-                band: 3,
-                closingDate: new Date("2026-08-31"),
-            },
-            {
-                id: 2,
-                roleName: "Frontend Engineer",
-                location: "Belfast",
-                capability: "Engineering",
-                band: 3,
-                closingDate: new Date("2026-08-31"),
-            },
-            {
-                id: 3,
-                roleName: "Principal Architect",
-                location: "London",
-                capability: "Engineering",
-                band: 4,
-                closingDate: new Date("2026-08-31"),
-            },
-            {
-                id: 4,
-                roleName: "Operations Manager",
-                location: "Seattle",
-                capability: "Operations",
-                band: 5,
-                closingDate: new Date("2026-08-31"),
-            },
-        ],
-        skipDuplicates: true,
-    });
+	const engineering = await prisma.capability.upsert({
+		where: { capabilityId: 1 },
+		update: {},
+		create: { capabilityName: "Engineering" },
+	});
+
+	const operations = await prisma.capability.upsert({
+		where: { capabilityId: 2 },
+		update: {},
+		create: { capabilityName: "Operations" },
+	});
+
+	const bandAssociate = await prisma.band.upsert({
+		where: { bandId: 1 },
+		update: {},
+		create: { bandName: "Associate" },
+	});
+
+	const bandSenior = await prisma.band.upsert({
+		where: { bandId: 2 },
+		update: {},
+		create: { bandName: "Senior" },
+	});
+
+	const bandPrincipal = await prisma.band.upsert({
+		where: { bandId: 3 },
+		update: {},
+		create: { bandName: "Principal" },
+	});
+
+	await prisma.jobRole.createMany({
+		data: [
+			{
+				roleName: "Backend Engineer",
+				location: "Dublin",
+				capabilityId: engineering.capabilityId,
+				bandId: bandAssociate.bandId,
+				closingDate: new Date("2026-08-31"),
+				status: "open",
+			},
+			{
+				roleName: "Frontend Engineer",
+				location: "Belfast",
+				capabilityId: engineering.capabilityId,
+				bandId: bandAssociate.bandId,
+				closingDate: new Date("2026-08-31"),
+				status: "open",
+			},
+			{
+				roleName: "Principal Architect",
+				location: "London",
+				capabilityId: engineering.capabilityId,
+				bandId: bandPrincipal.bandId,
+				closingDate: new Date("2026-08-31"),
+				status: "open",
+			},
+			{
+				roleName: "Operations Manager",
+				location: "Seattle",
+				capabilityId: operations.capabilityId,
+				bandId: bandSenior.bandId,
+				closingDate: new Date("2026-08-31"),
+				status: "open",
+			},
+		],
+		skipDuplicates: true,
+	});
 }
 
 main()
-  .catch((error) => {
-    console.error(error);
-    process.exitCode = 1;
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+	.catch((error) => {
+		console.error(error);
+		process.exitCode = 1;
+	})
+	.finally(async () => {
+		await prisma.$disconnect();
+	});

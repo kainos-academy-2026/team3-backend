@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
 import request from "supertest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
 	mockFindAllJobRoles: vi.fn(),
@@ -40,7 +40,7 @@ describe("GET /api/job-roles", () => {
 					bandId: 3,
 					bandName: "Band 3",
 				},
-				closingDate: new Date("2026-08-31"),
+				closingDate: "2026-08-31T00:00:00.000Z",
 				status: "Open",
 			},
 		]);
@@ -61,6 +61,7 @@ describe("GET /api/job-roles", () => {
 				bandId: 3,
 				bandName: "Band 3",
 			},
+			closingDate: "2026-08-31T00:00:00.000Z",
 			status: "Open",
 		});
 	});

@@ -1,20 +1,16 @@
 import type { Request, Response } from "express";
-import type { JobRoleResponseDto } from "../dtos/jobRoleDto.js";
-import { toJobRoleStatusDto } from "../dtos/jobRoleDto.js";
 import type { JobRoleService } from "../services/jobRoleService.js";
 
 export class JobRoleController {
-  constructor(
-    private readonly jobRoleService: JobRoleService,
-  ) {}
+	constructor(private readonly jobRoleService: JobRoleService) {}
 
-  async getAllJobRoles(_req: Request, res: Response): Promise<void> {
-    try {
-      const jobRoles = await this.jobRoleService.findAllJobRoles();
+	async getAllJobRoles(_req: Request, res: Response): Promise<void> {
+		try {
+			const jobRoles = await this.jobRoleService.findAllJobRoles();
 
-      res.status(200).json(jobRoles);
-    } catch {
-      res.status(500).json({ error: "Internal server error" });
-    }
-  }
+			res.status(200).json(jobRoles);
+		} catch {
+			res.status(500).json({ error: "Internal server error" });
+		}
+	}
 }

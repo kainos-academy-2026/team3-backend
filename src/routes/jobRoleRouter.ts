@@ -1,8 +1,8 @@
 import { Router } from "express";
 import { JobRoleController } from "../controllers/jobRoleController.js";
 import { JobRoleDao } from "../daos/jobRoleDao.js";
-import { JobRoleService } from "../services/jobRoleService.js";
 import { JobRoleMapper } from "../mappers/jobRoleMapper.js";
+import { JobRoleService } from "../services/jobRoleService.js";
 
 const router = Router();
 const jobRoleDao = new JobRoleDao();

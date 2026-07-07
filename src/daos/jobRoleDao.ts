@@ -2,7 +2,7 @@ import type { Prisma } from "@prisma/client";
 import prisma from "../prismaClient.js";
 
 export type JobRoleWithRelations = Prisma.JobRoleGetPayload<{
-  include: { capability: true; band: true };
+	include: { capability: true; band: true };
 }>;
 
 export class JobRoleDao {
@@ -11,7 +11,7 @@ export class JobRoleDao {
 			include: {
 				capability: true,
 				band: true,
-			}
+			},
 		});
 	}
 }

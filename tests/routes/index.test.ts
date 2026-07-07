@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from "vitest";
 import request from "supertest";
+import { describe, expect, it, vi } from "vitest";
 
 vi.mock("../../src/prismaClient.js", () => ({
 	default: {

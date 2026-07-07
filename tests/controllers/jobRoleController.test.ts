@@ -1,8 +1,10 @@
-import type { JobRole } from "@prisma/client";
 import type { Request, Response } from "express";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { JobRoleStatusDto } from "../../src/dtos/jobRoleDto.js";
 import { JobRoleController } from "../../src/controllers/jobRoleController.js";
+import {
+	type JobRoleResponseDto,
+	JobRoleStatusDto,
+} from "../../src/dtos/jobRoleDto.js";
 import type { JobRoleService } from "../../src/services/jobRoleService.js";
 
 const mockService = {
@@ -32,26 +34,20 @@ describe("JobRoleController", () => {
 	});
 
 	it("should return 200 with mapped job roles", async () => {
-		const jobRoles: JobRole[] = [
+		const jobRoles: JobRoleResponseDto[] = [
 			{
 				id: 1,
 				roleName: "Backend Engineer",
 				location: "Dublin",
-				capability: "Engineering",
-				band: 3,
-				closingDate: new Date("2026-08-31"),
-				status: "Open",
-			},
-		];
-
-		const mappedResponse = [
-			{
-				id: 1,
-				roleName: "Backend Engineer",
-				location: "Dublin",
-				capability: "Engineering",
-				band: 3,
-				closingDate: new Date("2026-08-31"),
+				capability: {
+					capabilityId: 1,
+					capabilityName: "Engineering",
+				},
+				band: {
+					bandId: 1,
+					bandName: "Associate",
+				},
+				closingDate: "2026-08-31T00:00:00.000Z",
 				status: JobRoleStatusDto.Open,
 			},
 		];
@@ -62,11 +58,13 @@ describe("JobRoleController", () => {
 
 		expect(jobRoleService.findAllJobRoles).toHaveBeenCalledTimes(1);
 		expect(res.status).toHaveBeenCalledWith(200);
-		expect(res.json).toHaveBeenCalledWith(mappedResponse);
+		expect(res.json).toHaveBeenCalledWith(jobRoles);
 	});
 
 	it("should return 500 when service throws", async () => {
-		vi.mocked(jobRoleService.findAllJobRoles).mockRejectedValueOnce(new Error("db down"));
+		vi.mocked(jobRoleService.findAllJobRoles).mockRejectedValueOnce(
+			new Error("db down"),
+		);
 
 		await controller.getAllJobRoles(req, res);
 
