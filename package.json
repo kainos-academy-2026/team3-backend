@@ -8,15 +8,20 @@
 		"dev": "tsx watch src/index.ts",
 		"build": "tsc",
 		"start": "node dist/index.js",
-    	"format": "biome format --write .",
+		"format": "biome format --write .",
 		"lint": "biome lint .",
 		"lint:fix": "biome lint --write .",
-    	"check": "biome check --write .",
-    	"ci:check": "biome ci .",
+		"check": "biome check --write .",
+		"ci:check": "biome ci .",
 		"test": "vitest run",
 		"test:watch": "vitest",
 		"test:coverage": "vitest run --coverage",
-    	"test:ui": "vitest --ui"
+		"test:ui": "vitest --ui",
+		"db:up": "docker compose up -d",
+		"db:down": "docker compose down",
+		"prisma:migrate": "prisma migrate dev --name init",
+		"prisma:seed": "prisma db seed",
+		"prisma:studio": "prisma studio"
 	},
 	"vitest": {
 		"environment": "node"
@@ -33,15 +38,19 @@
 	},
 	"homepage": "https://github.com/kainos-academy-2026/team3-backend#readme",
 	"dependencies": {
-		"express": "^5.2.1"
+		"@prisma/adapter-pg": "^7.8.0",
+		"@prisma/client": "^7.8.0",
+		"express": "^5.2.1",
+		"pg": "^8.22.0",
+		"zod": "^4.4.3"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.5.2",
 		"@types/express": "^5.0.6",
-		"@types/node": "^26.1.0",
 		"@types/supertest": "^7.2.0",
 		"@vitest/coverage-v8": "^4.1.10",
-    	"@vitest/ui": "^4.1.10",
+		"@vitest/ui": "^4.1.10",
+		"prisma": "^7.8.0",
 		"supertest": "^7.2.2",
 		"tsx": "^4.23.0",
 		"typescript": "^6.0.3",
