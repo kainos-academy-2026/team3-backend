@@ -228,7 +228,7 @@ curl -v --max-time 3 http://127.0.0.1:4000/health
 3. Check what process owns port 4000:
  
 ```bash
-lsof -nP -iTCP:3000 -sTCP:LISTEN
+lsof -nP -iTCP:4000 -sTCP:LISTEN
 ```
  
 4. If needed, run on another port:

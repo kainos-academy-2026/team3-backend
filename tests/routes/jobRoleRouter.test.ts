@@ -40,7 +40,7 @@ describe("GET /api/job-roles", () => {
 					bandId: 3,
 					bandName: "Band 3",
 				},
-				closingDate: "2026-08-31T00:00:00.000Z",
+				closingDate: "2026-08-31",
 				status: "Open",
 			},
 		]);
@@ -61,7 +61,7 @@ describe("GET /api/job-roles", () => {
 				bandId: 3,
 				bandName: "Band 3",
 			},
-			closingDate: "2026-08-31T00:00:00.000Z",
+			closingDate: "2026-08-31",
 			status: "Open",
 		});
 	});

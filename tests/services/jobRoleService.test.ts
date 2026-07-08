@@ -48,7 +48,7 @@ describe("JobRoleService", () => {
 				location: "Dublin",
 				capabilityId: 10,
 				bandId: 3,
-				closingDate: new Date("2026-08-31T00:00:00.000Z"),
+				closingDate: new Date("2026-08-31"),
 				status: "Open",
 				capability: {
 					capabilityId: 10,
@@ -74,7 +74,7 @@ describe("JobRoleService", () => {
 					bandId: 3,
 					bandName: "Band 3",
 				},
-				closingDate: "2026-08-31T00:00:00.000Z",
+				closingDate: "2026-08-31",
 				status: JobRoleStatusDto.Open,
 			},
 		];

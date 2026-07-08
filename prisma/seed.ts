@@ -48,7 +48,7 @@ async function main(): Promise<void> {
 				capabilityId: engineering.capabilityId,
 				bandId: bandAssociate.bandId,
 				closingDate: new Date("2026-08-31"),
-				status: "open",
+				status: "Open",
 			},
 			{
 				roleName: "Frontend Engineer",
@@ -56,7 +56,7 @@ async function main(): Promise<void> {
 				capabilityId: engineering.capabilityId,
 				bandId: bandAssociate.bandId,
 				closingDate: new Date("2026-08-31"),
-				status: "open",
+				status: "Open",
 			},
 			{
 				roleName: "Principal Architect",
@@ -64,7 +64,7 @@ async function main(): Promise<void> {
 				capabilityId: engineering.capabilityId,
 				bandId: bandPrincipal.bandId,
 				closingDate: new Date("2026-08-31"),
-				status: "open",
+				status: "Open",
 			},
 			{
 				roleName: "Operations Manager",
@@ -72,7 +72,7 @@ async function main(): Promise<void> {
 				capabilityId: operations.capabilityId,
 				bandId: bandSenior.bandId,
 				closingDate: new Date("2026-08-31"),
-				status: "open",
+				status: "Open",
 			},
 		],
 		skipDuplicates: true,

@@ -13,7 +13,7 @@ describe("JobRoleMapper", () => {
 			location: "Dublin",
 			capabilityId: 10,
 			bandId: 3,
-			closingDate: new Date("2026-08-31T00:00:00.000Z"),
+			closingDate: new Date("2026-08-31"),
 			status: "Open",
 			capability: {
 				capabilityId: 10,
