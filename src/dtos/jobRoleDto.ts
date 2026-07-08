@@ -26,19 +26,19 @@ export interface JobRoleResponseDto {
 }
 
 export interface JobRoleDetailedResponseDto {
-    id: number;
-    roleName: string;
-    location: string;
-    capability: CapabilityDto;
-    band: BandDto;
-    closingDate: string;
-    status: JobRoleStatusDto;
-    description: string;
-    responsibilities: string;
-    sharepointUrl: string;
-    numberOfOpenPositions: number;
+	id: number;
+	roleName: string;
+	location: string;
+	capability: CapabilityDto;
+	band: BandDto;
+	closingDate: string;
+	status: JobRoleStatusDto;
+	description: string;
+	responsibilities: string;
+	sharepointUrl: string;
+	numberOfOpenPositions: number;
 }
 
 export const JobRoleIdParamSchema = z.object({
-    id: z.coerce.number().int().positive("ID must be a positive integer"),
+	id: z.coerce.number().int().positive("ID must be a positive integer"),
 });

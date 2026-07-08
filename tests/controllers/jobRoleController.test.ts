@@ -8,13 +8,16 @@ import {
 import type { JobRoleService } from "../../src/services/jobRoleService.js";
 
 const mockService = {
-    findAllJobRoles: vi.fn(),
-    findJobRoleById: vi.fn(),
+	findAllJobRoles: vi.fn(),
+	findJobRoleById: vi.fn(),
 };
 
 describe("JobRoleController", () => {
 	let controller: JobRoleController;
-	let jobRoleService: Pick<JobRoleService, "findAllJobRoles" | "findJobRoleById">;
+	let jobRoleService: Pick<
+		JobRoleService,
+		"findAllJobRoles" | "findJobRoleById"
+	>;
 	let req: Request;
 	let res: Response;
 
@@ -75,64 +78,64 @@ describe("JobRoleController", () => {
 	});
 
 	it("should return 200 with a detailed job role", async () => {
-    const jobRole = {
-        id: 1,
-        roleName: "Backend Engineer",
-        location: "Dublin",
-        capability: {
-            capabilityId: 1,
-            capabilityName: "Engineering",
-        },
-        band: {
-            bandId: 1,
-            bandName: "Associate",
-        },
-        closingDate: "2026-08-31",
-        status: JobRoleStatusDto.Open,
-        description: "Backend role description",
-        responsibilities: "Build APIs",
-        sharepointUrl: "https://example.com/backend",
-        numberOfOpenPositions: 3,
-    };
+		const jobRole = {
+			id: 1,
+			roleName: "Backend Engineer",
+			location: "Dublin",
+			capability: {
+				capabilityId: 1,
+				capabilityName: "Engineering",
+			},
+			band: {
+				bandId: 1,
+				bandName: "Associate",
+			},
+			closingDate: "2026-08-31",
+			status: JobRoleStatusDto.Open,
+			description: "Backend role description",
+			responsibilities: "Build APIs",
+			sharepointUrl: "https://example.com/backend",
+			numberOfOpenPositions: 3,
+		};
 
-    req = {
-        params: { id: "1" },
-    } as unknown as Request;
+		req = {
+			params: { id: "1" },
+		} as unknown as Request;
 
-    vi.mocked(jobRoleService.findJobRoleById).mockResolvedValueOnce(jobRole);
+		vi.mocked(jobRoleService.findJobRoleById).mockResolvedValueOnce(jobRole);
 
-    await controller.getJobRoleById(req, res);
+		await controller.getJobRoleById(req, res);
 
-    expect(jobRoleService.findJobRoleById).toHaveBeenCalledWith(1);
-    expect(res.status).toHaveBeenCalledWith(200);
-    expect(res.json).toHaveBeenCalledWith(jobRole);
-});
+		expect(jobRoleService.findJobRoleById).toHaveBeenCalledWith(1);
+		expect(res.status).toHaveBeenCalledWith(200);
+		expect(res.json).toHaveBeenCalledWith(jobRole);
+	});
 
-it("should return 404 when job role is not found", async () => {
-    req = {
-        params: { id: "999" },
-    } as unknown as Request;
+	it("should return 404 when job role is not found", async () => {
+		req = {
+			params: { id: "999" },
+		} as unknown as Request;
 
-    vi.mocked(jobRoleService.findJobRoleById).mockResolvedValueOnce(null);
+		vi.mocked(jobRoleService.findJobRoleById).mockResolvedValueOnce(null);
 
-    await controller.getJobRoleById(req, res);
+		await controller.getJobRoleById(req, res);
 
-    expect(res.status).toHaveBeenCalledWith(404);
-    expect(res.json).toHaveBeenCalledWith({ error: "Job role not found" });
-});
+		expect(res.status).toHaveBeenCalledWith(404);
+		expect(res.json).toHaveBeenCalledWith({ error: "Job role not found" });
+	});
 
-it("should return 500 when findJobRoleById throws", async () => {
-    req = {
-        params: { id: "1" },
-    } as unknown as Request;
+	it("should return 500 when findJobRoleById throws", async () => {
+		req = {
+			params: { id: "1" },
+		} as unknown as Request;
 
-    vi.mocked(jobRoleService.findJobRoleById).mockRejectedValueOnce(
-        new Error("db down"),
-    );
+		vi.mocked(jobRoleService.findJobRoleById).mockRejectedValueOnce(
+			new Error("db down"),
+		);
 
-    await controller.getJobRoleById(req, res);
+		await controller.getJobRoleById(req, res);
 
-    expect(res.status).toHaveBeenCalledWith(500);
-    expect(res.json).toHaveBeenCalledWith({ error: "Internal server error" });
-});
+		expect(res.status).toHaveBeenCalledWith(500);
+		expect(res.json).toHaveBeenCalledWith({ error: "Internal server error" });
+	});
 });

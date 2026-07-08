@@ -11,13 +11,13 @@ import type { JobRoleMapper } from "../../src/mappers/jobRoleMapper.js";
 import { JobRoleService } from "../../src/services/jobRoleService.js";
 
 const mockDao = {
-    findAllJobRoles: vi.fn(),
-    findJobRoleById: vi.fn(),
+	findAllJobRoles: vi.fn(),
+	findJobRoleById: vi.fn(),
 };
 
 const mockMapper = {
-    toResponse: vi.fn(),
-    toDetailedResponse: vi.fn(),
+	toResponse: vi.fn(),
+	toDetailedResponse: vi.fn(),
 };
 
 describe("JobRoleService", () => {
@@ -105,64 +105,66 @@ describe("JobRoleService", () => {
 	});
 
 	it("should return mapped detailed job role from dao data", async () => {
-    const daoJobRole = {
-        id: 1,
-        roleName: "Backend Engineer",
-        location: "Dublin",
-        capabilityId: 10,
-        bandId: 3,
-        closingDate: new Date("2026-08-31"),
-        status: "Open",
-        description: "Backend role description",
-        responsibilities: "Build APIs",
-        sharepointUrl: "https://example.com/backend",
-        numberOfOpenPositions: 3,
-        capability: {
-            capabilityId: 10,
-            capabilityName: "Engineering",
-        },
-        band: {
-            bandId: 3,
-            bandName: "Band 3",
-        },
-    } as JobRoleWithRelations;
+		const daoJobRole = {
+			id: 1,
+			roleName: "Backend Engineer",
+			location: "Dublin",
+			capabilityId: 10,
+			bandId: 3,
+			closingDate: new Date("2026-08-31"),
+			status: "Open",
+			description: "Backend role description",
+			responsibilities: "Build APIs",
+			sharepointUrl: "https://example.com/backend",
+			numberOfOpenPositions: 3,
+			capability: {
+				capabilityId: 10,
+				capabilityName: "Engineering",
+			},
+			band: {
+				bandId: 3,
+				bandName: "Band 3",
+			},
+		} as JobRoleWithRelations;
 
-    const mappedJobRole = {
-        id: 1,
-        roleName: "Backend Engineer",
-        location: "Dublin",
-        capability: {
-            capabilityId: 10,
-            capabilityName: "Engineering",
-        },
-        band: {
-            bandId: 3,
-            bandName: "Band 3",
-        },
-        closingDate: "2026-08-31",
-        status: JobRoleStatusDto.Open,
-        description: "Backend role description",
-        responsibilities: "Build APIs",
-        sharepointUrl: "https://example.com/backend",
-        numberOfOpenPositions: 3,
-    };
+		const mappedJobRole = {
+			id: 1,
+			roleName: "Backend Engineer",
+			location: "Dublin",
+			capability: {
+				capabilityId: 10,
+				capabilityName: "Engineering",
+			},
+			band: {
+				bandId: 3,
+				bandName: "Band 3",
+			},
+			closingDate: "2026-08-31",
+			status: JobRoleStatusDto.Open,
+			description: "Backend role description",
+			responsibilities: "Build APIs",
+			sharepointUrl: "https://example.com/backend",
+			numberOfOpenPositions: 3,
+		};
 
-    vi.mocked(jobRoleDao.findJobRoleById).mockResolvedValueOnce(daoJobRole);
-    vi.mocked(jobRoleMapper.toDetailedResponse).mockReturnValueOnce(mappedJobRole);
+		vi.mocked(jobRoleDao.findJobRoleById).mockResolvedValueOnce(daoJobRole);
+		vi.mocked(jobRoleMapper.toDetailedResponse).mockReturnValueOnce(
+			mappedJobRole,
+		);
 
-    const result = await service.findJobRoleById(1);
+		const result = await service.findJobRoleById(1);
 
-    expect(jobRoleDao.findJobRoleById).toHaveBeenCalledWith(1);
-    expect(jobRoleMapper.toDetailedResponse).toHaveBeenCalledWith(daoJobRole);
-    expect(result).toEqual(mappedJobRole);
-});
+		expect(jobRoleDao.findJobRoleById).toHaveBeenCalledWith(1);
+		expect(jobRoleMapper.toDetailedResponse).toHaveBeenCalledWith(daoJobRole);
+		expect(result).toEqual(mappedJobRole);
+	});
 
-it("should return null when dao returns null", async () => {
-    vi.mocked(jobRoleDao.findJobRoleById).mockResolvedValueOnce(null);
+	it("should return null when dao returns null", async () => {
+		vi.mocked(jobRoleDao.findJobRoleById).mockResolvedValueOnce(null);
 
-    const result = await service.findJobRoleById(999);
+		const result = await service.findJobRoleById(999);
 
-    expect(result).toBeNull();
-    expect(jobRoleMapper.toDetailedResponse).not.toHaveBeenCalled();
-});
+		expect(result).toBeNull();
+		expect(jobRoleMapper.toDetailedResponse).not.toHaveBeenCalled();
+	});
 });

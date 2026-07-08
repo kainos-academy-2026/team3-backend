@@ -16,7 +16,7 @@ router.get("/", jobRoleController.getAllJobRoles.bind(jobRoleController));
 router.get(
 	"/:id",
 	validateParams(JobRoleIdParamSchema),
-	jobRoleController.getJobRoleById.bind(jobRoleController)
+	jobRoleController.getJobRoleById.bind(jobRoleController),
 );
 
 export default router;
