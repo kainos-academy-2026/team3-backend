@@ -1,6 +1,5 @@
 import type { JobRoleWithRelations } from "../daos/jobRoleDao.js";
-import type { JobRoleResponseDto } from "../dtos/jobRoleDto.js";
-import { toJobRoleStatusDto } from "../dtos/jobRoleDto.js";
+import { JobRoleStatusDto, type JobRoleResponseDto } from "../dtos/jobRoleDto.js";
 
 export class JobRoleMapper {
 	toResponse(jobRole: JobRoleWithRelations): JobRoleResponseDto {
@@ -17,7 +16,15 @@ export class JobRoleMapper {
 				bandName: jobRole.band.bandName,
 			},
 			closingDate: jobRole.closingDate.toISOString().split("T")[0],
-			status: toJobRoleStatusDto(jobRole.status),
+			status: this.toJobRoleStatusDto(jobRole.status),
 		};
+	}
+
+	private toJobRoleStatusDto(status: string): JobRoleStatusDto {
+		if (status === JobRoleStatusDto.Closed) {
+			return JobRoleStatusDto.Closed;
+		}
+
+		return JobRoleStatusDto.Open;
 	}
 }

@@ -22,11 +22,3 @@ export interface JobRoleResponseDto {
 	closingDate: string;
 	status: JobRoleStatusDto;
 }
-
-export function toJobRoleStatusDto(status: string): JobRoleStatusDto {
-	if (status === JobRoleStatusDto.Closed) {
-		return JobRoleStatusDto.Closed;
-	}
-
-	return JobRoleStatusDto.Open;
-}

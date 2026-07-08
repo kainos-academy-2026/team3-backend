@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
+import { JobRoleStatusDto } from "../src/dtos/jobRoleDto.js";
 
 const connectionString = process.env.DATABASE_URL;
 if (!connectionString) throw new Error("DATABASE_URL is not set");
@@ -48,7 +49,7 @@ async function main(): Promise<void> {
 				capabilityId: engineering.capabilityId,
 				bandId: bandAssociate.bandId,
 				closingDate: new Date("2026-08-31"),
-				status: "Open",
+				status: JobRoleStatusDto.Open,
 			},
 			{
 				roleName: "Frontend Engineer",
@@ -56,7 +57,7 @@ async function main(): Promise<void> {
 				capabilityId: engineering.capabilityId,
 				bandId: bandAssociate.bandId,
 				closingDate: new Date("2026-08-31"),
-				status: "Open",
+				status: JobRoleStatusDto.Open,
 			},
 			{
 				roleName: "Principal Architect",
@@ -64,7 +65,7 @@ async function main(): Promise<void> {
 				capabilityId: engineering.capabilityId,
 				bandId: bandPrincipal.bandId,
 				closingDate: new Date("2026-08-31"),
-				status: "Open",
+				status: JobRoleStatusDto.Open,
 			},
 			{
 				roleName: "Operations Manager",
@@ -72,7 +73,7 @@ async function main(): Promise<void> {
 				capabilityId: operations.capabilityId,
 				bandId: bandSenior.bandId,
 				closingDate: new Date("2026-08-31"),
-				status: "Open",
+				status: JobRoleStatusDto.Open,
 			},
 		],
 		skipDuplicates: true,

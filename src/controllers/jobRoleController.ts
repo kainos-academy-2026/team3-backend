@@ -9,7 +9,8 @@ export class JobRoleController {
 			const jobRoles = await this.jobRoleService.findAllJobRoles();
 
 			res.status(200).json(jobRoles);
-		} catch {
+		} catch (error) {
+			console.error(error);
 			res.status(500).json({ error: "Internal server error" });
 		}
 	}

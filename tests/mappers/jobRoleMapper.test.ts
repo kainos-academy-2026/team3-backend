@@ -43,4 +43,56 @@ describe("JobRoleMapper", () => {
 			status: JobRoleStatusDto.Open,
 		});
 	});
+
+	it("should map Closed status to Closed dto status", () => {
+		const mapper = new JobRoleMapper();
+
+		const jobRole = {
+			id: 1,
+			roleName: "Backend Engineer",
+			location: "Dublin",
+			capabilityId: 10,
+			bandId: 3,
+			closingDate: new Date("2026-08-31"),
+			status: "Closed",
+			capability: {
+				capabilityId: 10,
+				capabilityName: "Engineering",
+			},
+			band: {
+				bandId: 3,
+				bandName: "Band 3",
+			},
+		} as JobRoleWithRelations;
+
+		const result = mapper.toResponse(jobRole);
+
+		expect(result.status).toBe(JobRoleStatusDto.Closed);
+	});
+
+	it("should default unknown status to Open dto status", () => {
+		const mapper = new JobRoleMapper();
+
+		const jobRole = {
+			id: 1,
+			roleName: "Backend Engineer",
+			location: "Dublin",
+			capabilityId: 10,
+			bandId: 3,
+			closingDate: new Date("2026-08-31"),
+			status: "AnythingElse",
+			capability: {
+				capabilityId: 10,
+				capabilityName: "Engineering",
+			},
+			band: {
+				bandId: 3,
+				bandName: "Band 3",
+			},
+		} as JobRoleWithRelations;
+
+		const result = mapper.toResponse(jobRole);
+
+		expect(result.status).toBe(JobRoleStatusDto.Open);
+	});
 });

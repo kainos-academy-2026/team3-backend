@@ -1,22 +1,12 @@
 import { describe, expect, it } from "vitest";
-import {
-	JobRoleStatusDto,
-	toJobRoleStatusDto,
-} from "../../src/dtos/jobRoleDto.js";
+import { JobRoleStatusDto } from "../../src/dtos/jobRoleDto.js";
 
-describe("toJobRoleStatusDto", () => {
-	it("returns Closed when status is Closed", () => {
-		const result = toJobRoleStatusDto("Closed");
-		expect(result).toBe(JobRoleStatusDto.Closed);
+describe("JobRoleStatusDto", () => {
+	it("has the expected Open value", () => {
+		expect(JobRoleStatusDto.Open).toBe("Open");
 	});
 
-	it("returns Open when status is Open", () => {
-		const result = toJobRoleStatusDto("Open");
-		expect(result).toBe(JobRoleStatusDto.Open);
-	});
-
-	it("defaults to Open for unknown status", () => {
-		const result = toJobRoleStatusDto("AnythingElse");
-		expect(result).toBe(JobRoleStatusDto.Open);
+	it("has the expected Closed value", () => {
+		expect(JobRoleStatusDto.Closed).toBe("Closed");
 	});
 });
