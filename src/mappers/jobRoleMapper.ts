@@ -1,5 +1,8 @@
 import type { JobRoleWithRelations } from "../daos/jobRoleDao.js";
-import { JobRoleStatusDto, type JobRoleResponseDto } from "../dtos/jobRoleDto.js";
+import {
+	JobRoleStatusDto,
+	type JobRoleResponseDto,
+} from "../dtos/jobRoleDto.js";
 
 export class JobRoleMapper {
 	toResponse(jobRole: JobRoleWithRelations): JobRoleResponseDto {

@@ -48,14 +48,20 @@ password: password
 ```bash
 npm run prisma:migrate
 ```
- 
-7. Seed initial data:
+
+7. Build the Prisma Client:
+
+```bash
+npx prisma generate
+ ```
+
+8. Seed initial data:
  
 ```bash
 npm run prisma:seed
 ```
  
-8. Start the API in development mode:
+9. Start the API in development mode:
  
 ```bash
 npm run dev
@@ -120,6 +126,32 @@ Example response (`200 OK`):
 		"status": "Open"
 	}
 ]
+```
+
+
+### GET /api/job-roles
+
+Returns a unique job role based on an id.
+
+```json
+{
+	"id":1,
+	"roleName":"Backend Engineer",
+	"location":"Dublin",
+	"capability": {
+		"capabilityId":1,
+		"capabilityName":"Engineering"
+	},"band": {
+		"bandId":1,
+		"bandName":"Associate"
+	},
+	"closingDate":"2026-08-31",
+	"status":"Open",
+	"description":"Responsible for server-side web application logic and integration of the work front-end developers do.",
+	"responsibilities":"Design and implement backend services, APIs, and databases.",
+	"sharepointUrl":"https://example.com/backend-engineer",
+	"numberOfOpenPositions":3
+}
 ```
 
 ## Build
@@ -202,6 +234,7 @@ npm run ci:check
 - `npm run db:up` - start Postgres container
 - `npm run db:down` - stop Postgres container
 - `npm run prisma:migrate` - apply local migrations
+- `npx prisma generate` - Build the Prisma Client
 - `npm run prisma:seed` - seed database
 - `npm run prisma:studio` - open Prisma Studio
 - `npm test` - run test suite
