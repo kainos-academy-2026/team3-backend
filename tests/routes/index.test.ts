@@ -1,5 +1,14 @@
-import { describe, it, expect } from "vitest";
 import request from "supertest";
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("../../src/prismaClient.js", () => ({
+	default: {
+		jobRole: {
+			findMany: vi.fn(),
+		},
+	},
+}));
+
 import app from "../../src/app.js";
 
 describe("GET /health", () => {
