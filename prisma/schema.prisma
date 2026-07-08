@@ -21,6 +21,10 @@ model JobRole {
   bandId      Int
   closingDate DateTime      @db.Date
   status      String
+  description           String
+  responsibilities      String
+  sharepointUrl         String
+  numberOfOpenPositions Int
 }
 
 model Capability {

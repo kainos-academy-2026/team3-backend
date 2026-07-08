@@ -40,6 +40,7 @@ async function main(): Promise<void> {
 		update: {},
 		create: { bandName: "Principal" },
 	});
+	
 
 	await prisma.jobRole.createMany({
 		data: [
@@ -50,6 +51,10 @@ async function main(): Promise<void> {
 				bandId: bandAssociate.bandId,
 				closingDate: new Date("2026-08-31"),
 				status: JobRoleStatusDto.Open,
+				description: "Responsible for server-side web application logic and integration of the work front-end developers do.",
+				responsibilities: "Design and implement backend services, APIs, and databases.",
+				sharepointUrl: "https://example.com/backend-engineer",
+				numberOfOpenPositions: 3,
 			},
 			{
 				roleName: "Frontend Engineer",
@@ -58,6 +63,10 @@ async function main(): Promise<void> {
 				bandId: bandAssociate.bandId,
 				closingDate: new Date("2026-08-31"),
 				status: JobRoleStatusDto.Open,
+				description: "Responsible for client-side web application logic and integration with backend services.",
+				responsibilities: "Design and implement frontend components, user interfaces, and user experiences.",
+				sharepointUrl: "https://example.com/frontend-engineer",
+				numberOfOpenPositions: 2,
 			},
 			{
 				roleName: "Principal Architect",
@@ -66,6 +75,10 @@ async function main(): Promise<void> {
 				bandId: bandPrincipal.bandId,
 				closingDate: new Date("2026-08-31"),
 				status: JobRoleStatusDto.Open,
+				description: "Responsible for the overall architecture and design of the system.",
+				responsibilities: "Design and implement system architecture, review code, and mentor team members.",
+				sharepointUrl: "https://example.com/principal-architect",
+				numberOfOpenPositions: 1,
 			},
 			{
 				roleName: "Operations Manager",
@@ -74,6 +87,10 @@ async function main(): Promise<void> {
 				bandId: bandSenior.bandId,
 				closingDate: new Date("2026-08-31"),
 				status: JobRoleStatusDto.Open,
+				description: "Responsible for overseeing operations and ensuring efficient processes.",
+				responsibilities: "Manage operations team, optimize workflows, and implement best practices.",
+				sharepointUrl: "https://example.com/operations-manager",
+				numberOfOpenPositions: 1,
 			},
 		],
 		skipDuplicates: true,
