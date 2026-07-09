@@ -1,35 +1,30 @@
-import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
 import type { AuthDao } from "../daos/authDao.js";
 import type { LoginRequestDto } from "../dtos/authDto.js";
+import type PasswordService from "./passwordService.js";
+import type TokenService from "./tokenService.js";
 
 export class AuthService {
-	constructor(private readonly authDao: AuthDao) {}
+	constructor(
+		private readonly authDao: AuthDao,
+		private readonly passwordService: PasswordService,
+		private readonly tokenService: TokenService,
+	) {}
 
 	async login(dto: LoginRequestDto): Promise<string> {
 		const user = await this.authDao.findUserByEmail(dto.email);
-
-		// Use a generic error message — never tell the user which part was wrong
 		if (!user) {
 			throw new Error("Invalid credentials");
 		}
 
-		const passwordMatch = await bcrypt.compare(dto.password, user.passwordHash);
-
+		const passwordMatch = await this.passwordService.comparePasswords(
+			dto.password,
+			user.passwordHash,
+		);
 		if (!passwordMatch) {
 			throw new Error("Invalid credentials");
 		}
 
-		const secret = process.env.JWT_SECRET;
-		if (!secret) {
-			throw new Error("JWT_SECRET is not set");
-		}
-
-		const token = jwt.sign(
-			{ userId: user.id, email: user.email },
-			secret,
-			{ expiresIn: "1h" },
-		);
+		const token = await this.tokenService.create(user);
 
 		return token;
 	}

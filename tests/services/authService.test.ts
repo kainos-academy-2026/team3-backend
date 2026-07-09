@@ -1,28 +1,34 @@
-import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AuthDao } from "../../src/daos/authDao.js";
 import { AuthService } from "../../src/services/authService.js";
-
-vi.mock("bcrypt");
-vi.mock("jsonwebtoken");
+import type PasswordService from "../../src/services/passwordService.js";
+import type TokenService from "../../src/services/tokenService.js";
 
 const mockDao = {
 	findUserByEmail: vi.fn(),
 };
 
+const mockPasswordService = {
+	hashPassword: vi.fn(),
+	comparePasswords: vi.fn(),
+};
+
+const mockTokenService = {
+	create: vi.fn(),
+	verify: vi.fn(),
+};
+
 describe("AuthService", () => {
 	let service: AuthService;
-	let authDao: Pick<AuthDao, "findUserByEmail">;
 
 	beforeEach(() => {
 		vi.clearAllMocks();
 
-		authDao = {
-			findUserByEmail: mockDao.findUserByEmail,
-		};
-
-		service = new AuthService(authDao as AuthDao);
+		service = new AuthService(
+			mockDao as unknown as AuthDao,
+			mockPasswordService as unknown as PasswordService,
+			mockTokenService as unknown as TokenService,
+		);
 	});
 
 	describe("login", () => {
@@ -41,14 +47,14 @@ describe("AuthService", () => {
 				passwordHash: "hashedpassword",
 			});
 
-			vi.mocked(bcrypt.compare).mockResolvedValue(false as never);
+			mockPasswordService.comparePasswords.mockResolvedValue(false);
 
 			await expect(
 				service.login({ email: "test@example.com", password: "wrongpassword" }),
 			).rejects.toThrow("Invalid credentials");
 		});
 
-		it("should return JWT token when credentials are valid", async () => {
+		it("should return token when credentials are valid", async () => {
 			const mockUser = {
 				id: 1,
 				email: "test@example.com",
@@ -56,51 +62,37 @@ describe("AuthService", () => {
 			};
 
 			mockDao.findUserByEmail.mockResolvedValue(mockUser);
-			vi.mocked(bcrypt.compare).mockResolvedValue(true as never);
-
-			const mockToken = "mocked-jwt-token";
-			vi.mocked(jwt.sign).mockReturnValue(mockToken as never);
-
-			vi.stubEnv("JWT_SECRET", "test-secret");
+			mockPasswordService.comparePasswords.mockResolvedValue(true);
+			mockTokenService.create.mockResolvedValue("mocked-jwt-token");
 
 			const token = await service.login({
 				email: "test@example.com",
 				password: "password123",
 			});
 
-			expect(token).toBe(mockToken);
-			expect(jwt.sign).toHaveBeenCalledWith(
-				{ userId: mockUser.id, email: mockUser.email },
-				"test-secret",
-				{ expiresIn: "1h" },
-			);
-
-			vi.unstubAllEnvs();
+			expect(token).toBe("mocked-jwt-token");
+			expect(mockTokenService.create).toHaveBeenCalledWith(mockUser);
 		});
 
-		it("should call bcrypt.compare with correct arguments", async () => {
-			const mockUser = {
+		it("should call comparePasswords with correct arguments", async () => {
+			mockDao.findUserByEmail.mockResolvedValue({
 				id: 1,
 				email: "test@example.com",
 				passwordHash: "hashedpassword",
-			};
+			});
 
-			mockDao.findUserByEmail.mockResolvedValue(mockUser);
-			vi.mocked(bcrypt.compare).mockResolvedValue(true as never);
-			vi.mocked(jwt.sign).mockReturnValue("token" as never);
-
-			vi.stubEnv("JWT_SECRET", "test-secret");
+			mockPasswordService.comparePasswords.mockResolvedValue(true);
+			mockTokenService.create.mockResolvedValue("token");
 
 			await service.login({
 				email: "test@example.com",
 				password: "password123",
 			});
 
-			expect(bcrypt.compare).toHaveBeenCalledWith(
+			expect(mockPasswordService.comparePasswords).toHaveBeenCalledWith(
 				"password123",
 				"hashedpassword",
 			);
-
-			vi.unstubAllEnvs();
+		});
 	});
 });

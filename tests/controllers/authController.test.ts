@@ -59,6 +59,16 @@ describe("AuthController", () => {
 			expect(res.status).toHaveBeenCalledWith(401);
 			expect(res.json).toHaveBeenCalledWith({ error: "Invalid credentials" });
 		});
+
+		it("should return 500 when an unexpected error occurs", async () => {
+			mockService.login.mockRejectedValue(new Error("Unexpected error"));
+			req.body = { email: "test@example.com", password: "password123" };
+
+			await controller.login(req as Request, res as Response);
+
+			expect(res.status).toHaveBeenCalledWith(500);
+			expect(res.json).toHaveBeenCalledWith({ error: "Internal server error" });
+		});
 	});
 
 	describe("logout", () => {

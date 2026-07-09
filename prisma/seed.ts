@@ -1,7 +1,7 @@
 import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
-import bcrypt from "bcrypt";
+import argon2 from "argon2";
 import { JobRoleStatusDto } from "../src/dtos/jobRoleDto.js";
 
 const connectionString = process.env.DATABASE_URL;
@@ -44,10 +44,12 @@ async function main(): Promise<void> {
 
 	await prisma.user.upsert({
 		where: { email: "test@example.com" },
-		update: {},
+		update: {
+			passwordHash: await argon2.hash("TestPassword123"),
+		},
 		create: {
 			email: "test@example.com",
-			passwordHash: await bcrypt.hash("TestPassword123", 12),
+			passwordHash: await argon2.hash("TestPassword123"),
 		},
 	});
 
