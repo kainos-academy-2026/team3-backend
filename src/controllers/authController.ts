@@ -17,8 +17,12 @@ export class AuthController {
 			});
 
 			res.status(200).json({ message: "Login successful" });
-		} catch (_error) {
-			res.status(401).json({ error: "Invalid credentials" });
+		} catch (error) {
+			if (error instanceof Error && error.message === "Invalid credentials") {
+				res.status(401).json({ error: "Invalid credentials" });
+				return;
+			}
+			res.status(500).json({ error: "Internal server error" });
 		}
 	}
 
