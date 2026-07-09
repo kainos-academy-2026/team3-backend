@@ -76,6 +76,7 @@ describe("AuthService", () => {
 			);
 
 			vi.unstubAllEnvs();
+		});
 
 		it("should call bcrypt.compare with correct arguments", async () => {
 			const mockUser = {
