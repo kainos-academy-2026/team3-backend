@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcrypt";
 import { JobRoleStatusDto } from "../src/dtos/jobRoleDto.js";
 
 const connectionString = process.env.DATABASE_URL;
@@ -39,6 +40,15 @@ async function main(): Promise<void> {
 		where: { bandId: 3 },
 		update: {},
 		create: { bandName: "Principal" },
+	});
+
+	await prisma.user.upsert({
+		where: { email: "test@example.com" },
+		update: {},
+		create: {
+			email: "test@example.com",
+			passwordHash: await bcrypt.hash("TestPassword123", 12),
+		},
 	});
 
 	await prisma.jobRole.createMany({
