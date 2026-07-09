@@ -96,3 +96,51 @@ describe("JobRoleMapper", () => {
 		expect(result.status).toBe(JobRoleStatusDto.Open);
 	});
 });
+
+it("should map a job role to detailed response dto", () => {
+	const mapper = new JobRoleMapper();
+
+	const jobRole = {
+		id: 1,
+		roleName: "Backend Engineer",
+		location: "Dublin",
+		capabilityId: 10,
+		bandId: 3,
+		closingDate: new Date("2026-08-31"),
+		status: "Open",
+		description: "Backend role description",
+		responsibilities: "Build APIs",
+		sharepointUrl: "https://example.com/backend",
+		numberOfOpenPositions: 3,
+		capability: {
+			capabilityId: 10,
+			capabilityName: "Engineering",
+		},
+		band: {
+			bandId: 3,
+			bandName: "Band 3",
+		},
+	} as JobRoleWithRelations;
+
+	const result = mapper.toDetailedResponse(jobRole);
+
+	expect(result).toEqual({
+		id: 1,
+		roleName: "Backend Engineer",
+		location: "Dublin",
+		capability: {
+			capabilityId: 10,
+			capabilityName: "Engineering",
+		},
+		band: {
+			bandId: 3,
+			bandName: "Band 3",
+		},
+		closingDate: "2026-08-31",
+		status: JobRoleStatusDto.Open,
+		description: "Backend role description",
+		responsibilities: "Build APIs",
+		sharepointUrl: "https://example.com/backend",
+		numberOfOpenPositions: 3,
+	});
+});
