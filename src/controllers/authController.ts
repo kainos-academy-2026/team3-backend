@@ -10,9 +10,10 @@ export class AuthController {
 			const dto = req.body as LoginRequestDto;
 			const token = await this.authService.login(dto);
 
+			const isProd = process.env.NODE_ENV === "production";
 			res.cookie("token", token, {
 				httpOnly: true, // JS on the page cannot read this cookie
-				secure: false, // set to true in production (requires HTTPS)
+				secure: isProd, // require HTTPS in production
 				sameSite: "strict",
 			});
 
