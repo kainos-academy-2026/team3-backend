@@ -20,9 +20,14 @@ export class AuthService {
 			throw new Error("Invalid credentials");
 		}
 
+		const secret = process.env.JWT_SECRET;
+		if (!secret) {
+			throw new Error("JWT_SECRET is not set");
+		}
+
 		const token = jwt.sign(
 			{ userId: user.id, email: user.email },
-			process.env.JWT_SECRET as string,
+			secret,
 			{ expiresIn: "1h" },
 		);
 
