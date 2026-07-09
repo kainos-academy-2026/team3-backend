@@ -88,6 +88,8 @@ describe("AuthService", () => {
 			vi.mocked(bcrypt.compare).mockResolvedValue(true as never);
 			vi.mocked(jwt.sign).mockReturnValue("token" as never);
 
+			vi.stubEnv("JWT_SECRET", "test-secret");
+
 			await service.login({
 				email: "test@example.com",
 				password: "password123",
@@ -97,6 +99,7 @@ describe("AuthService", () => {
 				"password123",
 				"hashedpassword",
 			);
-		});
+
+			vi.unstubAllEnvs();
 	});
 });
