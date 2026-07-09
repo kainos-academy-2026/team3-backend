@@ -61,6 +61,8 @@ describe("AuthService", () => {
 			const mockToken = "mocked-jwt-token";
 			vi.mocked(jwt.sign).mockReturnValue(mockToken as never);
 
+			vi.stubEnv("JWT_SECRET", "test-secret");
+
 			const token = await service.login({
 				email: "test@example.com",
 				password: "password123",
@@ -69,10 +71,11 @@ describe("AuthService", () => {
 			expect(token).toBe(mockToken);
 			expect(jwt.sign).toHaveBeenCalledWith(
 				{ userId: mockUser.id, email: mockUser.email },
-				process.env.JWT_SECRET,
+				"test-secret",
 				{ expiresIn: "1h" },
 			);
-		});
+
+			vi.unstubAllEnvs();
 
 		it("should call bcrypt.compare with correct arguments", async () => {
 			const mockUser = {
