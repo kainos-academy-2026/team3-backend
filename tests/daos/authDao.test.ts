@@ -1,19 +1,22 @@
 import type { User } from "@prisma/client";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { AuthDao } from "../../src/daos/authDao.js";
+
+const mocks = vi.hoisted(() => ({
+	findUnique: vi.fn(),
+}));
 
 vi.mock("../../src/prismaClient.js", () => ({
 	default: {
 		user: {
-			findUnique: vi.fn(),
+			findUnique: mocks.findUnique,
 		},
 	},
 }));
 
-import prisma from "../../src/prismaClient.js";
+import { AuthDao } from "../../src/daos/authDao.js";
 
-const mockPrisma = prisma as unknown as {
-	user: { findUnique: ReturnType<typeof vi.fn> };
+const mockPrisma = {
+	user: { findUnique: mocks.findUnique },
 };
 
 describe("AuthDao", () => {
