@@ -40,3 +40,9 @@ model Band {
 
   jobRoles JobRole[]
 }
+
+model User {
+  id           Int    @id @default(autoincrement())
+  email        String @unique
+  passwordHash String
+}

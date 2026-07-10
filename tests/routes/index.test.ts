@@ -1,5 +1,6 @@
+import type { Application } from "express";
 import request from "supertest";
-import { describe, expect, it, vi } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 
 vi.mock("../../src/prismaClient.js", () => ({
 	default: {
@@ -9,7 +10,12 @@ vi.mock("../../src/prismaClient.js", () => ({
 	},
 }));
 
-import app from "../../src/app.js";
+let app: Application;
+
+beforeAll(async () => {
+	process.env.JWT_SECRET = "test-secret";
+	app = (await import("../../src/app.js")).default;
+});
 
 describe("GET /health", () => {
 	it("should return 200 with status UP", async () => {

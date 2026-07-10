@@ -1,9 +1,19 @@
+import type { Application } from "express";
 import request from "supertest";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
 	mockFindAllJobRoles: vi.fn(),
 	mockFindJobRoleById: vi.fn(),
+}));
+
+vi.mock("../../src/prismaClient.js", () => ({
+	default: {
+		jobRole: {
+			findMany: vi.fn(),
+			findUnique: vi.fn(),
+		},
+	},
 }));
 
 vi.mock("../../src/daos/jobRoleDao.js", () => ({
@@ -21,7 +31,13 @@ vi.mock("../../src/services/jobRoleService.js", () => ({
 	},
 }));
 
-import app from "../../src/app.js";
+let app: Application;
+
+beforeAll(async () => {
+	process.env.DATABASE_URL = "postgresql://test:test@localhost:5432/test";
+	process.env.JWT_SECRET = "test-secret";
+	app = (await import("../../src/app.js")).default;
+});
 
 describe("GET /api/job-roles", () => {
 	beforeEach(() => {
