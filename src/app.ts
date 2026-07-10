@@ -3,6 +3,10 @@ import express from "express";
 import authRouter from "./routes/authRouter.js";
 import jobRoleRouter from "./routes/jobRoleRouter.js";
 
+if (!process.env.JWT_SECRET) {
+	throw new Error("JWT_SECRET is not set");
+}
+
 const app = express();
 
 app.use(express.json());

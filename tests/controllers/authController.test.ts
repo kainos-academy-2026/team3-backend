@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthController } from "../../src/controllers/authController.js";
+import { InvalidCredentialsError } from "../../src/errors/InvalidCredentialsErrors.js";
 import type { AuthService } from "../../src/services/authService.js";
 
 const mockService = {
@@ -41,17 +42,15 @@ describe("AuthController", () => {
 
 			await controller.login(req as Request, res as Response);
 
-			expect(res.cookie).toHaveBeenCalledWith("token", "jwt-token-here", {
-				httpOnly: true,
-				secure: false,
-				sameSite: "strict",
-			});
 			expect(res.status).toHaveBeenCalledWith(200);
-			expect(res.json).toHaveBeenCalledWith({ message: "Login successful" });
+			expect(res.json).toHaveBeenCalledWith({
+				token: "jwt-token-here",
+				message: "Login successful",
+			});
 		});
 
 		it("should return 401 when login fails", async () => {
-			mockService.login.mockRejectedValue(new Error("Invalid credentials"));
+			mockService.login.mockRejectedValue(new InvalidCredentialsError());
 			req.body = { email: "test@example.com", password: "wrongpassword" };
 
 			await controller.login(req as Request, res as Response);

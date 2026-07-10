@@ -41,16 +41,6 @@ describe("JwtTokenService", () => {
 
 			vi.unstubAllEnvs();
 		});
-
-		it("should throw when JWT_SECRET is not set", async () => {
-			vi.stubEnv("JWT_SECRET", "");
-
-			await expect(service.create(mockUser)).rejects.toThrow(
-				"JWT_SECRET is not set",
-			);
-
-			vi.unstubAllEnvs();
-		});
 	});
 
 	describe("verify", () => {

@@ -1,5 +1,6 @@
 import type { AuthDao } from "../daos/authDao.js";
 import type { LoginRequestDto } from "../dtos/authDto.js";
+import { InvalidCredentialsError } from "../errors/InvalidCredentialsErrors.js";
 import type PasswordService from "./passwordService.js";
 import type TokenService from "./tokenService.js";
 
@@ -13,7 +14,7 @@ export class AuthService {
 	async login(dto: LoginRequestDto): Promise<string> {
 		const user = await this.authDao.findUserByEmail(dto.email);
 		if (!user) {
-			throw new Error("Invalid credentials");
+			throw new InvalidCredentialsError();
 		}
 
 		const passwordMatch = await this.passwordService.comparePasswords(

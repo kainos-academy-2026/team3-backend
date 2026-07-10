@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import type { LoginRequestDto } from "../dtos/authDto.js";
+import { InvalidCredentialsError } from "../errors/InvalidCredentialsErrors.js";
 import type { AuthService } from "../services/authService.js";
 
 export class AuthController {
@@ -10,16 +11,9 @@ export class AuthController {
 			const dto = req.body as LoginRequestDto;
 			const token = await this.authService.login(dto);
 
-			const isProd = process.env.NODE_ENV === "production";
-			res.cookie("token", token, {
-				httpOnly: true, // JS on the page cannot read this cookie
-				secure: isProd, // require HTTPS in production
-				sameSite: "strict",
-			});
-
-			res.status(200).json({ message: "Login successful" });
+			res.status(200).json({ token, message: "Login successful" });
 		} catch (error) {
-			if (error instanceof Error && error.message === "Invalid credentials") {
+			if (error instanceof InvalidCredentialsError) {
 				res.status(401).json({ error: "Invalid credentials" });
 				return;
 			}
