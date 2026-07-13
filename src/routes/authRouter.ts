@@ -6,6 +6,7 @@ import { validateBody } from "../middleware/validate.js";
 import { Argon2PasswordService } from "../services/argon2PasswordService.js";
 import { AuthService } from "../services/authService.js";
 import { JwtTokenService } from "../services/jwtTokenService.js";
+import { RegisterRequestSchema } from "../dtos/authDto.js";
 
 const router = Router();
 const authDao = new AuthDao();
@@ -18,6 +19,12 @@ router.post(
 	"/login",
 	validateBody(LoginRequestSchema),
 	authController.login.bind(authController),
+);
+
+router.post(
+	"/register",
+	validateBody(RegisterRequestSchema),
+	authController.register.bind(authController),
 );
 
 router.post("/logout", authController.logout.bind(authController));

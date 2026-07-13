@@ -1,16 +1,18 @@
 import type { Request, Response } from "express";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthController } from "../../src/controllers/authController.js";
-import { InvalidCredentialsError } from "../../src/errors/InvalidCredentialsErrors.js";
+import { InvalidCredentialsError, EmailAlreadyExistsError } from "../../src/errors/InvalidCredentialsErrors.js";
 import type { AuthService } from "../../src/services/authService.js";
+
 
 const mockService = {
 	login: vi.fn(),
+	register: vi.fn(),
 };
 
 describe("AuthController", () => {
 	let controller: AuthController;
-	let authService: Pick<AuthService, "login">;
+	let authService: Pick<AuthService, "login" | "register">;
 	let req: Partial<Request>;
 	let res: Partial<Response>;
 
@@ -19,6 +21,7 @@ describe("AuthController", () => {
 
 		authService = {
 			login: mockService.login,
+			register: mockService.register,
 		};
 
 		controller = new AuthController(authService as AuthService);
@@ -77,6 +80,38 @@ describe("AuthController", () => {
 			expect(res.clearCookie).toHaveBeenCalledWith("token");
 			expect(res.status).toHaveBeenCalledWith(200);
 			expect(res.json).toHaveBeenCalledWith({ message: "Logged out" });
+		});
+	});
+
+	describe ("register", () => {
+		it("should return 201 on successful registration", async () => {
+			mockService.register.mockResolvedValue(undefined);
+			req.body = { email: "new@example.com", password: "Strong@Pass1" };
+
+			await controller.register(req as Request, res as Response);
+
+			expect(res.status).toHaveBeenCalledWith(201);
+			expect(res.json).toHaveBeenCalledWith({ message: "User registered successfully" });
+		});
+
+		it("should return 409 when email already exists", async () => {
+			mockService.register.mockRejectedValue(new EmailAlreadyExistsError());
+			req.body = { email: "existing@example.com", password: "Strong@Pass1" };
+
+			await controller.register(req as Request, res as Response);
+
+			expect(res.status).toHaveBeenCalledWith(409);
+			expect(res.json).toHaveBeenCalledWith({ error: "Email already exists" });
+		});
+
+		it("should return 500 when an unexpected error occurs", async () => {
+			mockService.register.mockRejectedValue(new Error("Unexpected error"));
+			req.body = { email: "x@example.com", password: "Strong@Pass1" };
+
+			await controller.register(req as Request, res as Response);
+
+			expect(res.status).toHaveBeenCalledWith(500);
+			expect(res.json).toHaveBeenCalledWith({ error: "Internal server error" });
 		});
 	});
 });

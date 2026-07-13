@@ -3,9 +3,11 @@ import type { AuthDao } from "../../src/daos/authDao.js";
 import { AuthService } from "../../src/services/authService.js";
 import type PasswordService from "../../src/services/passwordService.js";
 import type TokenService from "../../src/services/tokenService.js";
+import { EmailAlreadyExistsError, InvalidCredentialsError } from 	"../../src/errors/InvalidCredentialsErrors.js";
 
 const mockDao = {
 	findUserByEmail: vi.fn(),
+	createUser: vi.fn(),
 };
 
 const mockPasswordService = {
@@ -93,6 +95,45 @@ describe("AuthService", () => {
 				"password123",
 				"hashedpassword",
 			);
+		});
+	});
+
+	describe("register", () => {
+		it("should create user with hashed password when email is new", async () => {
+			mockDao.findUserByEmail.mockResolvedValue(null);
+			mockPasswordService.hashPassword.mockResolvedValue("hashed-pass");
+			mockDao.createUser.mockResolvedValue({
+				id: 2,
+				email: "new@example.com",
+				passwordHash: "hashed-pass",
+				role: "USER",
+			});
+			await service.register({
+				email: "new@example.com",
+				password: "Strong@Pass1",
+			});
+
+			expect(mockPasswordService.hashPassword).toHaveBeenCalledWith("Strong@Pass1");
+			expect(mockDao.createUser).toHaveBeenCalledWith("new@example.com", "hashed-pass");
+		});
+
+		it("should throw EmailAlreadyExistsError when email already exists", async () => {
+			mockDao.findUserByEmail.mockResolvedValue({
+				id: 1,
+				email: "existing@example.com",
+				passwordHash: "hash",
+				role: "USER",
+			});
+
+			await expect(
+				service.register({
+					email: "existing@example.com",
+					password: "Strong@Pass1",
+				}),
+			).rejects.toMatchObject({ name: "EmailAlreadyExistsError" });
+
+			expect(mockPasswordService.hashPassword).not.toHaveBeenCalled();
+			expect(mockDao.createUser).not.toHaveBeenCalled();
 		});
 	});
 });
