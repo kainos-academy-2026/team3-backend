@@ -1,5 +1,6 @@
 import type { AuthDao } from "../daos/authDao.js";
-import type { LoginRequestDto, RegisterRequestDto } from "../dtos/authDto.js";
+import type { LoginRequestDto} from "../dtos/authDto.js";
+import type { RegisterRequestDto } from "../dtos/registerDto.js";
 import { EmailAlreadyExistsError, InvalidCredentialsError } from "../errors/InvalidCredentialsErrors.js";
 import type PasswordService from "./passwordService.js";
 import type TokenService from "./tokenService.js";

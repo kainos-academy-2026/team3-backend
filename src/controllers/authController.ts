@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import type { LoginRequestDto } from "../dtos/authDto.js";
+import type { RegisterRequestDto } from "../dtos/registerDto.js";
 import { EmailAlreadyExistsError, InvalidCredentialsError } from "../errors/InvalidCredentialsErrors.js";
 import type { AuthService } from "../services/authService.js";
 
@@ -28,7 +29,7 @@ export class AuthController {
 
 	async register(req: Request, res: Response): Promise<void> {
 		try {
-			const dto = req.body;
+			const dto = req.body as RegisterRequestDto;
 			await this.authService.register(dto);
 			res.status(201).json({ message: "User registered successfully" });
 		} catch (error) {
