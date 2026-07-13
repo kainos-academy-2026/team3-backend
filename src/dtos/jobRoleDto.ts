@@ -39,6 +39,22 @@ export interface JobRoleDetailedResponseDto {
 	numberOfOpenPositions: number;
 }
 
+export enum JobRoleApplicationStatusDto {
+	InProgress = "In Progress",
+}
+
+export interface JobRoleApplicationRequestDto {
+	userId: number;
+	jobRoleId: number;
+	fileName: string;
+	contentType: string;
+}
+
+export interface JobRoleApplicationResponseDto {
+	uploadUrl: string;
+	key: string;
+}
+
 export const JobRoleIdParamSchema = z.object({
 	id: z.coerce.number().int().positive("ID must be a positive integer"),
 });
