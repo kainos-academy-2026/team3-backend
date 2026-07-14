@@ -1,5 +1,4 @@
-import type { User, UserRole } from "@prisma/client";
-import type { AuthTokenPayload } from "./tokenService.js";
+import type { UserRole } from "@prisma/client";
 
 export interface AuthTokenPayload {
     userId: number;

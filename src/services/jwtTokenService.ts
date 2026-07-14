@@ -1,7 +1,7 @@
 import type { User } from "@prisma/client";
 import jwt from "jsonwebtoken";
 import type TokenService from "./tokenService.js";
-import type { AuthTokenPayload } from "./tokenService.js";
+import type { AuthTokenPayload } from "./authTokenPayload.js";
 
 export class JwtTokenService implements TokenService {
 	async create(user: User): Promise<string> {

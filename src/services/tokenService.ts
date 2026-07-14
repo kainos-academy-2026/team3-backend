@@ -1,4 +1,4 @@
-import type { User, UserRole } from "@prisma/client";
+import type { User } from "@prisma/client";
 import type { AuthTokenPayload } from "./authTokenPayload.js";
 
 
