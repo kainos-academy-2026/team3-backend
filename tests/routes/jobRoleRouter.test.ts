@@ -110,7 +110,21 @@ describe("GET /api/job-roles/:id", () => {
 		vi.clearAllMocks();
 	});
 
+	it("should return 401 when authorization header is missing", async () => {
+		const response = await request(app).get("/api/job-roles/1");
+
+		expect(response.status).toBe(401);
+		expect(response.body).toEqual({
+			error: "Missing or invalid authorization header",
+		});
+	});
+
 	it("should return 200 with a detailed job role", async () => {
+		mocks.mockVerifyToken.mockResolvedValueOnce({
+			userId: 7,
+			email: "user@example.com",
+			role: "USER",
+		});
 		mocks.mockFindJobRoleById.mockResolvedValueOnce({
 			id: 1,
 			roleName: "Backend Engineer",
@@ -131,7 +145,9 @@ describe("GET /api/job-roles/:id", () => {
 			numberOfOpenPositions: 3,
 		});
 
-		const response = await request(app).get("/api/job-roles/1");
+		const response = await request(app)
+			.get("/api/job-roles/1")
+			.set("Authorization", "Bearer valid-token");
 
 		expect(response.status).toBe(200);
 		expect(response.body).toMatchObject({
@@ -145,16 +161,31 @@ describe("GET /api/job-roles/:id", () => {
 	});
 
 	it("should return 404 when the job role does not exist", async () => {
+		mocks.mockVerifyToken.mockResolvedValueOnce({
+			userId: 7,
+			email: "user@example.com",
+			role: "USER",
+		});
 		mocks.mockFindJobRoleById.mockResolvedValueOnce(null);
 
-		const response = await request(app).get("/api/job-roles/999");
+		const response = await request(app)
+			.get("/api/job-roles/999")
+			.set("Authorization", "Bearer valid-token");
 
 		expect(response.status).toBe(404);
 		expect(response.body).toEqual({ error: "Job role not found" });
 	});
 
 	it("should return 400 when the job role id is invalid", async () => {
-		const response = await request(app).get("/api/job-roles/not-a-number");
+		mocks.mockVerifyToken.mockResolvedValueOnce({
+			userId: 7,
+			email: "user@example.com",
+			role: "USER",
+		});
+
+		const response = await request(app)
+			.get("/api/job-roles/not-a-number")
+			.set("Authorization", "Bearer valid-token");
 
 		expect(response.status).toBe(400);
 		expect(response.body).toEqual({
@@ -168,9 +199,16 @@ describe("GET /api/job-roles/:id", () => {
 	});
 
 	it("should return 500 when the service throws", async () => {
+		mocks.mockVerifyToken.mockResolvedValueOnce({
+			userId: 7,
+			email: "user@example.com",
+			role: "USER",
+		});
 		mocks.mockFindJobRoleById.mockRejectedValueOnce(new Error("db down"));
 
-		const response = await request(app).get("/api/job-roles/1");
+		const response = await request(app)
+			.get("/api/job-roles/1")
+			.set("Authorization", "Bearer valid-token");
 
 		expect(response.status).toBe(500);
 		expect(response.body).toEqual({ error: "Internal server error" });
