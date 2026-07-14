@@ -1,14 +1,17 @@
 import type { JobRoleDao } from "../daos/jobRoleDao.js";
 import type {
+	JobRoleApplicationResponseDto,
 	JobRoleDetailedResponseDto,
 	JobRoleResponseDto,
 } from "../dtos/jobRoleDto.js";
 import type { JobRoleMapper } from "../mappers/jobRoleMapper.js";
+import type { S3Service } from "./s3Service.js";
 
 export class JobRoleService {
 	constructor(
 		private readonly jobRoleDao: JobRoleDao,
 		private readonly jobRoleMapper: JobRoleMapper,
+		private readonly s3Service: S3Service,
 	) {}
 
 	async findAllJobRoles(): Promise<JobRoleResponseDto[]> {
@@ -24,5 +27,21 @@ export class JobRoleService {
 			return null;
 		}
 		return this.jobRoleMapper.toDetailedResponse(jobRole);
+	}
+
+	async applyForJobRole(
+		userId: number,
+		jobRoleId: number,
+		fileName: string,
+		contentType: string,
+	): Promise<JobRoleApplicationResponseDto> {
+		const { uploadUrl, key } = await this.s3Service.getPresignedUploadUrl(
+			userId,
+			jobRoleId,
+			fileName,
+			contentType,
+		);
+		await this.jobRoleDao.createApplication(userId, jobRoleId, key);
+		return { uploadUrl, key };
 	}
 }

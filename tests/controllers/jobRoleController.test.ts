@@ -10,13 +10,14 @@ import type { JobRoleService } from "../../src/services/jobRoleService.js";
 const mockService = {
 	findAllJobRoles: vi.fn(),
 	findJobRoleById: vi.fn(),
+	applyForJobRole: vi.fn(),
 };
 
 describe("JobRoleController", () => {
 	let controller: JobRoleController;
 	let jobRoleService: Pick<
 		JobRoleService,
-		"findAllJobRoles" | "findJobRoleById"
+		"findAllJobRoles" | "findJobRoleById" | "applyForJobRole"
 	>;
 	let req: Request;
 	let res: Response;
@@ -27,6 +28,7 @@ describe("JobRoleController", () => {
 		jobRoleService = {
 			findAllJobRoles: mockService.findAllJobRoles,
 			findJobRoleById: mockService.findJobRoleById,
+			applyForJobRole: mockService.applyForJobRole,
 		};
 
 		controller = new JobRoleController(jobRoleService as JobRoleService);
@@ -134,6 +136,75 @@ describe("JobRoleController", () => {
 		);
 
 		await controller.getJobRoleById(req, res);
+
+		expect(res.status).toHaveBeenCalledWith(500);
+		expect(res.json).toHaveBeenCalledWith({ error: "Internal server error" });
+	});
+
+	it("should return 200 with presigned upload data for applyForJobRole", async () => {
+		req = {
+			params: { id: "2" },
+			body: {
+				userId: 7,
+				fileName: "cv.pdf",
+				contentType: "application/pdf",
+			},
+		} as unknown as Request;
+
+		const presignedUrlData = {
+			uploadUrl: "https://example.com/upload",
+			key: "job-applications/2/7/123-cv.pdf",
+		};
+
+		vi.mocked(jobRoleService.applyForJobRole).mockResolvedValueOnce(
+			presignedUrlData,
+		);
+
+		await controller.applyForJobRole(req, res);
+
+		expect(jobRoleService.applyForJobRole).toHaveBeenCalledWith(
+			7,
+			2,
+			"cv.pdf",
+			"application/pdf",
+		);
+		expect(res.status).toHaveBeenCalledWith(200);
+		expect(res.json).toHaveBeenCalledWith(presignedUrlData);
+	});
+
+	it("should return 400 when applyForJobRole is missing required fields", async () => {
+		req = {
+			params: { id: "2" },
+			body: {
+				userId: 7,
+				fileName: "cv.pdf",
+			},
+		} as unknown as Request;
+
+		await controller.applyForJobRole(req, res);
+
+		expect(jobRoleService.applyForJobRole).not.toHaveBeenCalled();
+		expect(res.status).toHaveBeenCalledWith(400);
+		expect(res.json).toHaveBeenCalledWith({
+			error: "Missing required fields",
+		});
+	});
+
+	it("should return 500 when applyForJobRole throws", async () => {
+		req = {
+			params: { id: "2" },
+			body: {
+				userId: 7,
+				fileName: "cv.pdf",
+				contentType: "application/pdf",
+			},
+		} as unknown as Request;
+
+		vi.mocked(jobRoleService.applyForJobRole).mockRejectedValueOnce(
+			new Error("db down"),
+		);
+
+		await controller.applyForJobRole(req, res);
 
 		expect(res.status).toHaveBeenCalledWith(500);
 		expect(res.json).toHaveBeenCalledWith({ error: "Internal server error" });

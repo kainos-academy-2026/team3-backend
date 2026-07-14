@@ -9,10 +9,12 @@ import {
 } from "../../src/dtos/jobRoleDto.js";
 import type { JobRoleMapper } from "../../src/mappers/jobRoleMapper.js";
 import { JobRoleService } from "../../src/services/jobRoleService.js";
+import type { S3Service } from "../../src/services/s3Service.js";
 
 const mockDao = {
 	findAllJobRoles: vi.fn(),
 	findJobRoleById: vi.fn(),
+	createApplication: vi.fn(),
 };
 
 const mockMapper = {
@@ -20,10 +22,18 @@ const mockMapper = {
 	toDetailedResponse: vi.fn(),
 };
 
+const mockS3Service = {
+	getPresignedUploadUrl: vi.fn(),
+};
+
 describe("JobRoleService", () => {
 	let service: JobRoleService;
-	let jobRoleDao: Pick<JobRoleDao, "findAllJobRoles" | "findJobRoleById">;
+	let jobRoleDao: Pick<
+		JobRoleDao,
+		"findAllJobRoles" | "findJobRoleById" | "createApplication"
+	>;
 	let jobRoleMapper: Pick<JobRoleMapper, "toResponse" | "toDetailedResponse">;
+	let s3Service: Pick<S3Service, "getPresignedUploadUrl">;
 
 	beforeEach(() => {
 		vi.clearAllMocks();
@@ -31,6 +41,7 @@ describe("JobRoleService", () => {
 		jobRoleDao = {
 			findAllJobRoles: mockDao.findAllJobRoles,
 			findJobRoleById: mockDao.findJobRoleById,
+			createApplication: mockDao.createApplication,
 		};
 
 		jobRoleMapper = {
@@ -38,9 +49,14 @@ describe("JobRoleService", () => {
 			toDetailedResponse: mockMapper.toDetailedResponse,
 		};
 
+		s3Service = {
+			getPresignedUploadUrl: mockS3Service.getPresignedUploadUrl,
+		};
+
 		service = new JobRoleService(
 			jobRoleDao as JobRoleDao,
 			jobRoleMapper as JobRoleMapper,
+			s3Service as S3Service,
 		);
 	});
 
@@ -166,5 +182,46 @@ describe("JobRoleService", () => {
 
 		expect(result).toBeNull();
 		expect(jobRoleMapper.toDetailedResponse).not.toHaveBeenCalled();
+	});
+
+	it("should return presigned upload data and create an application", async () => {
+		vi.mocked(s3Service.getPresignedUploadUrl).mockResolvedValueOnce({
+			uploadUrl: "https://example.com/upload",
+			key: "job-applications/2/7/123-cv.pdf",
+		});
+		vi.mocked(jobRoleDao.createApplication).mockResolvedValueOnce(undefined);
+
+		const result = await service.applyForJobRole(
+			7,
+			2,
+			"cv.pdf",
+			"application/pdf",
+		);
+
+		expect(s3Service.getPresignedUploadUrl).toHaveBeenCalledWith(
+			7,
+			2,
+			"cv.pdf",
+			"application/pdf",
+		);
+		expect(jobRoleDao.createApplication).toHaveBeenCalledWith(
+			7,
+			2,
+			"job-applications/2/7/123-cv.pdf",
+		);
+		expect(result).toEqual({
+			uploadUrl: "https://example.com/upload",
+			key: "job-applications/2/7/123-cv.pdf",
+		});
+	});
+
+	it("should throw when presigned url generation fails", async () => {
+		vi.mocked(s3Service.getPresignedUploadUrl).mockRejectedValueOnce(
+			new Error("s3 down"),
+		);
+
+		await expect(
+			service.applyForJobRole(7, 2, "cv.pdf", "application/pdf"),
+		).rejects.toThrow("s3 down");
 	});
 });

@@ -14,6 +14,8 @@ let app: Application;
 
 beforeAll(async () => {
 	process.env.JWT_SECRET = "test-secret";
+	process.env.AWS_REGION = "eu-west-1";
+	process.env.S3_BUCKET_NAME = "test-bucket";
 	app = (await import("../../src/app.js")).default;
 });
 

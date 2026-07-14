@@ -3,7 +3,6 @@ import type { AuthDao } from "../../src/daos/authDao.js";
 import { AuthService } from "../../src/services/authService.js";
 import type PasswordService from "../../src/services/passwordService.js";
 import type TokenService from "../../src/services/tokenService.js";
-import { EmailAlreadyExistsError, InvalidCredentialsError } from 	"../../src/errors/InvalidCredentialsErrors.js";
 
 const mockDao = {
 	findUserByEmail: vi.fn(),
@@ -113,8 +112,13 @@ describe("AuthService", () => {
 				password: "Strong@Pass1",
 			});
 
-			expect(mockPasswordService.hashPassword).toHaveBeenCalledWith("Strong@Pass1");
-			expect(mockDao.createUser).toHaveBeenCalledWith("new@example.com", "hashed-pass");
+			expect(mockPasswordService.hashPassword).toHaveBeenCalledWith(
+				"Strong@Pass1",
+			);
+			expect(mockDao.createUser).toHaveBeenCalledWith(
+				"new@example.com",
+				"hashed-pass",
+			);
 		});
 
 		it("should throw EmailAlreadyExistsError when email already exists", async () => {

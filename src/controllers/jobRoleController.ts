@@ -31,4 +31,28 @@ export class JobRoleController {
 			res.status(500).json({ error: "Internal server error" });
 		}
 	}
+
+	async applyForJobRole(req: Request, res: Response): Promise<void> {
+		try {
+			const jobRoleId = Number(req.params.id);
+			const { userId, fileName, contentType } = req.body;
+
+			if (!userId || !fileName || !contentType) {
+				res.status(400).json({ error: "Missing required fields" });
+				return;
+			}
+
+			const presignedUrlData = await this.jobRoleService.applyForJobRole(
+				userId,
+				jobRoleId,
+				fileName,
+				contentType,
+			);
+
+			res.status(200).json(presignedUrlData);
+		} catch (error) {
+			console.error(error);
+			res.status(500).json({ error: "Internal server error" });
+		}
+	}
 }

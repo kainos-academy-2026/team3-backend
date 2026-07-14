@@ -1,9 +1,11 @@
 import type { Request, Response } from "express";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthController } from "../../src/controllers/authController.js";
-import { InvalidCredentialsError, EmailAlreadyExistsError } from "../../src/errors/InvalidCredentialsErrors.js";
+import {
+	EmailAlreadyExistsError,
+	InvalidCredentialsError,
+} from "../../src/errors/InvalidCredentialsErrors.js";
 import type { AuthService } from "../../src/services/authService.js";
-
 
 const mockService = {
 	login: vi.fn(),
@@ -83,7 +85,7 @@ describe("AuthController", () => {
 		});
 	});
 
-	describe ("register", () => {
+	describe("register", () => {
 		it("should return 201 on successful registration", async () => {
 			mockService.register.mockResolvedValue(undefined);
 			req.body = { email: "new@example.com", password: "Strong@Pass1" };
@@ -91,7 +93,9 @@ describe("AuthController", () => {
 			await controller.register(req as Request, res as Response);
 
 			expect(res.status).toHaveBeenCalledWith(201);
-			expect(res.json).toHaveBeenCalledWith({ message: "User registered successfully" });
+			expect(res.json).toHaveBeenCalledWith({
+				message: "User registered successfully",
+			});
 		});
 
 		it("should return 409 when email already exists", async () => {

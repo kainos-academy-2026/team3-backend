@@ -42,12 +42,13 @@ async function main(): Promise<void> {
 		create: { bandName: "Principal" },
 	});
 
-	await prisma.user.upsert({
+	const testUser = await prisma.user.upsert({
 		where: { email: "test@example.com" },
 		update: {
 			passwordHash: await argon2.hash("TestPassword123"),
 		},
 		create: {
+			id: 1,
 			email: "test@example.com",
 			passwordHash: await argon2.hash("TestPassword123"),
 		},
@@ -113,6 +114,16 @@ async function main(): Promise<void> {
 			},
 		],
 		skipDuplicates: true,
+	});
+
+	await prisma.application.create({
+		data: {
+			userId: testUser.id,
+			jobRoleId: 1,
+			status: "In Progress",
+			cvUrl: "https://example.com/cv/test-user-cv.pdf",
+			appliedAt: new Date("2026-08-21"),
+		},
 	});
 }
 
