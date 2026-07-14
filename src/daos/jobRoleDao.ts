@@ -1,6 +1,6 @@
 import type { Prisma } from "@prisma/client";
-import prisma from "../prismaClient.js";
 import { JobRoleApplicationStatusDto } from "../dtos/jobRoleDto.js";
+import prisma from "../prismaClient.js";
 
 export type JobRoleWithRelations = Prisma.JobRoleGetPayload<{
 	include: { capability: true; band: true };
@@ -26,9 +26,18 @@ export class JobRoleDao {
 		});
 	}
 
-	async createApplication(userId: number, jobRoleId: number, cvUrl: string): Promise<void> {
+	async createApplication(
+		userId: number,
+		jobRoleId: number,
+		cvUrl: string,
+	): Promise<void> {
 		await prisma.application.create({
-			data: { userId, jobRoleId, cvUrl, status: JobRoleApplicationStatusDto.InProgress },
+			data: {
+				userId,
+				jobRoleId,
+				cvUrl,
+				status: JobRoleApplicationStatusDto.InProgress,
+			},
 		});
 	}
 }

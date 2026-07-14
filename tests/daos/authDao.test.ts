@@ -35,7 +35,7 @@ describe("AuthDao", () => {
 				id: 1,
 				email: "test@example.com",
 				passwordHash: "hashedpassword",
-				role: "USER"
+				role: "USER",
 			};
 
 			mockPrisma.user.findUnique.mockResolvedValue(mockUser);

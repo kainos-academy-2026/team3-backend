@@ -68,7 +68,7 @@ async function main(): Promise<void> {
 				responsibilities:
 					"Design and implement backend services, APIs, and databases.",
 				sharepointUrl: "https://example.com/backend-engineer",
-				numberOfOpenPositions: 3
+				numberOfOpenPositions: 3,
 			},
 			{
 				roleName: "Frontend Engineer",
@@ -118,7 +118,6 @@ async function main(): Promise<void> {
 
 	await prisma.application.create({
 		data: {
-			id: 1,
 			userId: testUser.id,
 			jobRoleId: 1,
 			status: "In Progress",

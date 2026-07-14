@@ -2,11 +2,11 @@ import { Router } from "express";
 import { AuthController } from "../controllers/authController.js";
 import { AuthDao } from "../daos/authDao.js";
 import { LoginRequestSchema } from "../dtos/authDto.js";
+import { RegisterRequestSchema } from "../dtos/registerDto.js";
 import { validateBody } from "../middleware/validate.js";
 import { Argon2PasswordService } from "../services/argon2PasswordService.js";
 import { AuthService } from "../services/authService.js";
 import { JwtTokenService } from "../services/jwtTokenService.js";
-import { RegisterRequestSchema } from "../dtos/registerDto.js";
 
 const router = Router();
 const authDao = new AuthDao();

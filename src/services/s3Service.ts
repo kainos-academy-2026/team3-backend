@@ -7,10 +7,10 @@ export class S3Service {
 
 	constructor() {
 		const region = process.env.AWS_REGION;
-		const bucketName = process.env.AWS_S3_BUCKET_NAME;
+		const bucketName = process.env.S3_BUCKET_NAME;
 
 		if (!region) throw new Error("AWS_REGION is not set");
-		if (!bucketName) throw new Error("AWS_S3_BUCKET_NAME is not set");
+		if (!bucketName) throw new Error("S3_BUCKET_NAME is not set");
 
 		this.bucketName = bucketName;
 		this.client = new S3Client({ region });
@@ -23,7 +23,7 @@ export class S3Service {
 		contentType: string,
 	): Promise<{ uploadUrl: string; key: string }> {
 		const key = `job-applications/${jobRoleId}/${userId}/${Date.now()}-${fileName}`;
-        
+
 		const command = new PutObjectCommand({
 			Bucket: this.bucketName,
 			Key: key,

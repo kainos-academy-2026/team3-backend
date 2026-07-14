@@ -4,6 +4,7 @@ import type { JobRoleWithRelations } from "../../src/daos/jobRoleDao.js";
 const mocks = vi.hoisted(() => ({
 	findMany: vi.fn(),
 	findUnique: vi.fn(),
+	create: vi.fn(),
 }));
 
 vi.mock("../../src/prismaClient.js", () => ({
@@ -12,10 +13,14 @@ vi.mock("../../src/prismaClient.js", () => ({
 			findMany: mocks.findMany,
 			findUnique: mocks.findUnique,
 		},
+		application: {
+			create: mocks.create,
+		},
 	},
 }));
 
 import { JobRoleDao } from "../../src/daos/jobRoleDao.js";
+import { JobRoleApplicationStatusDto } from "../../src/dtos/jobRoleDto.js";
 
 describe("JobRoleDao", () => {
 	beforeEach(() => {
@@ -82,5 +87,37 @@ describe("JobRoleDao", () => {
 			},
 		});
 		expect(result).toEqual(dbRow);
+	});
+
+	it("should create an application with in progress status", async () => {
+		mocks.create.mockResolvedValueOnce({
+			id: 1,
+			userId: 7,
+			jobRoleId: 2,
+			cvUrl: "job-applications/2/7/123-cv.pdf",
+			status: JobRoleApplicationStatusDto.InProgress,
+		});
+
+		const dao = new JobRoleDao();
+		await dao.createApplication(7, 2, "job-applications/2/7/123-cv.pdf");
+
+		expect(mocks.create).toHaveBeenCalledWith({
+			data: {
+				userId: 7,
+				jobRoleId: 2,
+				cvUrl: "job-applications/2/7/123-cv.pdf",
+				status: JobRoleApplicationStatusDto.InProgress,
+			},
+		});
+	});
+
+	it("should throw when createApplication fails", async () => {
+		mocks.create.mockRejectedValueOnce(new Error("db down"));
+
+		const dao = new JobRoleDao();
+
+		await expect(
+			dao.createApplication(7, 2, "job-applications/2/7/123-cv.pdf"),
+		).rejects.toThrow("db down");
 	});
 });

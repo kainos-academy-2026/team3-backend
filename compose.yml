@@ -17,5 +17,22 @@ services:
       timeout: 3s
       retries: 10
 
+  ministack:
+    image: ministackorg/ministack:latest
+    container_name: team3-ministack
+    restart: unless-stopped
+    ports:
+      - "4566:4566"
+    environment:
+      MINISTACK_REGION: us-east-1
+      MINISTACK_ACCOUNT_ID: "000000000000"
+      PERSIST_STATE: "1"
+      STATE_DIR: /data/ministack-state
+      S3_PERSIST: "1"
+      S3_DATA_DIR: /data/ministack-s3
+    volumes:
+      - ministack_data:/data
+
 volumes:
   postgres_data:
+  ministack_data:

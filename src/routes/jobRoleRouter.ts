@@ -20,6 +20,10 @@ router.get(
 	validateParams(JobRoleIdParamSchema),
 	jobRoleController.getJobRoleById.bind(jobRoleController),
 );
-router.post("/:id/apply", validateParams(JobRoleIdParamSchema), jobRoleController.applyForJobRole.bind(jobRoleController));
+router.post(
+	"/:id/apply",
+	validateParams(JobRoleIdParamSchema),
+	jobRoleController.applyForJobRole.bind(jobRoleController),
+);
 
 export default router;
