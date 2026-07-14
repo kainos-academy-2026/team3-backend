@@ -18,6 +18,7 @@ describe("JwtTokenService", () => {
 		id: 1,
 		email: "test@example.com",
 		passwordHash: "hashedpassword",
+		role: "USER",
 	};
 
 	beforeEach(() => {
@@ -34,7 +35,7 @@ describe("JwtTokenService", () => {
 
 			expect(token).toBe("signed-token");
 			expect(jwt.sign).toHaveBeenCalledWith(
-				{ userId: mockUser.id, email: mockUser.email },
+				{ userId: mockUser.id, email: mockUser.email, role: mockUser.role },
 				"test-secret",
 				{ expiresIn: "1h" },
 			);
@@ -44,17 +45,25 @@ describe("JwtTokenService", () => {
 	});
 
 	describe("verify", () => {
-		it("should return true when token is valid", async () => {
+		it("should return token payload when token is valid", async () => {
 			vi.stubEnv("JWT_SECRET", "test-secret");
-			vi.mocked(jwt.verify).mockReturnValue({} as never);
+			vi.mocked(jwt.verify).mockReturnValue({
+				userId: 1,
+				email: "test@example.com",
+				role: "USER",
+			} as never);
 
 			const result = await service.verify("valid-token");
 
-			expect(result).toBe(true);
+			expect(result).toEqual({
+				userId: 1,
+				email: "test@example.com",
+				role: "USER",
+			});
 			vi.unstubAllEnvs();
 		});
 
-		it("should return false when token is invalid", async () => {
+		it("should return null when token is invalid", async () => {
 			vi.stubEnv("JWT_SECRET", "test-secret");
 			vi.mocked(jwt.verify).mockImplementation(() => {
 				throw new Error("invalid");
@@ -62,16 +71,30 @@ describe("JwtTokenService", () => {
 
 			const result = await service.verify("bad-token");
 
-			expect(result).toBe(false);
+			expect(result).toBeNull();
+			vi.unstubAllEnvs();
+		});
+		
+		it("should return null when decoded role is not a string", async () => {
+			vi.stubEnv("JWT_SECRET", "test-secret");
+			vi.mocked(jwt.verify).mockReturnValue({
+				userId: 1,
+				email: "test@example.com",
+				role: 123,
+			} as never);
+
+			const result = await service.verify("bad-role-token");
+
+			expect(result).toBeNull();
 			vi.unstubAllEnvs();
 		});
 
-		it("should return false when JWT_SECRET is not set", async () => {
+		it("should return null when JWT_SECRET is not set", async () => {
 			vi.stubEnv("JWT_SECRET", "");
 
 			const result = await service.verify("any-token");
 
-			expect(result).toBe(false);
+			expect(result).toBeNull();
 			vi.unstubAllEnvs();
 		});
 	});

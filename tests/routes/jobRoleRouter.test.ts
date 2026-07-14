@@ -5,6 +5,8 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
 	mockFindAllJobRoles: vi.fn(),
 	mockFindJobRoleById: vi.fn(),
+	mockApplyForJobRole: vi.fn(),
+	mockVerifyToken: vi.fn(),
 }));
 
 vi.mock("../../src/prismaClient.js", () => ({
@@ -28,6 +30,13 @@ vi.mock("../../src/services/jobRoleService.js", () => ({
 	JobRoleService: class JobRoleService {
 		findAllJobRoles = mocks.mockFindAllJobRoles;
 		findJobRoleById = mocks.mockFindJobRoleById;
+		applyForJobRole = mocks.mockApplyForJobRole;
+	},
+}));
+
+vi.mock("../../src/services/jwtTokenService.js", () => ({
+	JwtTokenService: class JwtTokenService {
+		verify = mocks.mockVerifyToken;
 	},
 }));
 
@@ -165,5 +174,65 @@ describe("GET /api/job-roles/:id", () => {
 
 		expect(response.status).toBe(500);
 		expect(response.body).toEqual({ error: "Internal server error" });
+	});
+});
+
+describe("POST /api/job-roles/:id/apply", () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+	});
+
+	it("should return 401 when authorization header is missing", async () => {
+		const response = await request(app)
+			.post("/api/job-roles/2/apply")
+			.send({ fileName: "cv.pdf", contentType: "application/pdf" });
+
+		expect(response.status).toBe(401);
+		expect(response.body).toEqual({
+			error: "Missing or invalid authorization header",
+		});
+		expect(mocks.mockApplyForJobRole).not.toHaveBeenCalled();
+	});
+
+	it("should return 401 when token is invalid", async () => {
+		mocks.mockVerifyToken.mockResolvedValueOnce(null);
+
+		const response = await request(app)
+			.post("/api/job-roles/2/apply")
+			.set("Authorization", "Bearer invalid-token")
+			.send({ fileName: "cv.pdf", contentType: "application/pdf" });
+
+		expect(response.status).toBe(401);
+		expect(response.body).toEqual({ error: "Invalid or expired token" });
+		expect(mocks.mockApplyForJobRole).not.toHaveBeenCalled();
+	});
+
+	it("should return 200 and apply with authenticated user id", async () => {
+		mocks.mockVerifyToken.mockResolvedValueOnce({
+			userId: 7,
+			email: "user@example.com",
+			role: "USER",
+		});
+		mocks.mockApplyForJobRole.mockResolvedValueOnce({
+			uploadUrl: "https://example.com/upload",
+			key: "job-applications/2/7/123-cv.pdf",
+		});
+
+		const response = await request(app)
+			.post("/api/job-roles/2/apply")
+			.set("Authorization", "Bearer valid-token")
+			.send({ fileName: "cv.pdf", contentType: "application/pdf" });
+
+		expect(response.status).toBe(200);
+		expect(response.body).toEqual({
+			uploadUrl: "https://example.com/upload",
+			key: "job-applications/2/7/123-cv.pdf",
+		});
+		expect(mocks.mockApplyForJobRole).toHaveBeenCalledWith(
+			7,
+			2,
+			"cv.pdf",
+			"application/pdf",
+		);
 	});
 });
