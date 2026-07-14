@@ -45,7 +45,6 @@ export enum JobRoleApplicationStatusDto {
 
 export interface JobRoleApplicationRequestDto {
 	userId: number;
-	jobRoleId: number;
 	fileName: string;
 	contentType: string;
 }
