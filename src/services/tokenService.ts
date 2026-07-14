@@ -1,6 +1,12 @@
-import type { User } from "@prisma/client";
+import type { User, UserRole } from "@prisma/client";
+
+export interface AuthTokenPayload {
+	userId: number;
+	email: string;
+	role: UserRole;
+}
 
 export default interface TokenService {
 	create(user: User): Promise<string>;
-	verify(token: string): Promise<boolean>;
+	verify(token: string): Promise<AuthTokenPayload | null>;
 }

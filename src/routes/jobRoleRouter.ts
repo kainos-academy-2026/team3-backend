@@ -26,4 +26,5 @@ router.post(
 	jobRoleController.applyForJobRole.bind(jobRoleController),
 );
 
+
 export default router;

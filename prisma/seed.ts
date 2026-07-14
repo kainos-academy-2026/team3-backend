@@ -54,6 +54,19 @@ async function main(): Promise<void> {
 		},
 	});
 
+	// await prisma.user.upsert({
+	// 	where: { email: "admin@example.com" },
+	// 	update: {
+	// 		passwordHash: await argon2.hash("AdminPassword123"),
+	// 		role: "ADMIN",
+	// 	},
+	// 	create: {
+	// 		email: "admin@example.com",
+	// 		passwordHash: await argon2.hash("AdminPassword123"),
+	// 		role: "ADMIN",
+	// 	},
+	// });
+
 	await prisma.jobRole.createMany({
 		data: [
 			{

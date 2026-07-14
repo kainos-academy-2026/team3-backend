@@ -26,7 +26,7 @@ export class AuthService {
 			user.passwordHash,
 		);
 		if (!passwordMatch) {
-			throw new Error("Invalid credentials");
+			throw new InvalidCredentialsError();
 		}
 
 		const token = await this.tokenService.create(user);
