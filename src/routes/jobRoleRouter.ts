@@ -18,6 +18,7 @@ const jobRoleController = new JobRoleController(jobRoleService);
 router.get("/", jobRoleController.getAllJobRoles.bind(jobRoleController));
 router.get(
 	"/:id",
+	authenticate,
 	validateParams(JobRoleIdParamSchema),
 	jobRoleController.getJobRoleById.bind(jobRoleController),
 );
