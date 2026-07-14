@@ -74,6 +74,20 @@ describe("JwtTokenService", () => {
 			expect(result).toBeNull();
 			vi.unstubAllEnvs();
 		});
+		
+		it("should return null when decoded role is not a string", async () => {
+			vi.stubEnv("JWT_SECRET", "test-secret");
+			vi.mocked(jwt.verify).mockReturnValue({
+				userId: 1,
+				email: "test@example.com",
+				role: 123,
+			} as never);
+
+			const result = await service.verify("bad-role-token");
+
+			expect(result).toBeNull();
+			vi.unstubAllEnvs();
+		});
 
 		it("should return null when JWT_SECRET is not set", async () => {
 			vi.stubEnv("JWT_SECRET", "");

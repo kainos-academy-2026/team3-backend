@@ -144,8 +144,8 @@ describe("JobRoleController", () => {
 	it("should return 200 with presigned upload data for applyForJobRole", async () => {
 		req = {
 			params: { id: "2" },
+			user: { userId: 7, email: "user@example.com", role: "USER" },
 			body: {
-				userId: 7,
 				fileName: "cv.pdf",
 				contentType: "application/pdf",
 			},
@@ -172,11 +172,29 @@ describe("JobRoleController", () => {
 		expect(res.json).toHaveBeenCalledWith(presignedUrlData);
 	});
 
-	it("should return 400 when applyForJobRole is missing required fields", async () => {
+	it("should return 401 when applyForJobRole has no authenticated user", async () => {
 		req = {
 			params: { id: "2" },
 			body: {
-				userId: 7,
+				fileName: "cv.pdf",
+				contentType: "application/pdf",
+			},
+		} as unknown as Request;
+
+		await controller.applyForJobRole(req, res);
+
+		expect(jobRoleService.applyForJobRole).not.toHaveBeenCalled();
+		expect(res.status).toHaveBeenCalledWith(401);
+		expect(res.json).toHaveBeenCalledWith({
+			error: "Authentication required",
+		});
+	});
+
+	it("should return 400 when applyForJobRole is missing required fields", async () => {
+		req = {
+			params: { id: "2" },
+			user: { userId: 7, email: "user@example.com", role: "USER" },
+			body: {
 				fileName: "cv.pdf",
 			},
 		} as unknown as Request;
@@ -193,8 +211,8 @@ describe("JobRoleController", () => {
 	it("should return 500 when applyForJobRole throws", async () => {
 		req = {
 			params: { id: "2" },
+			user: { userId: 7, email: "user@example.com", role: "USER" },
 			body: {
-				userId: 7,
 				fileName: "cv.pdf",
 				contentType: "application/pdf",
 			},

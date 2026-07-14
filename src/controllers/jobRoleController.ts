@@ -35,9 +35,15 @@ export class JobRoleController {
 	async applyForJobRole(req: Request, res: Response): Promise<void> {
 		try {
 			const jobRoleId = Number(req.params.id);
-			const { userId, fileName, contentType } = req.body;
+			const userId = req.user?.userId;
+			const { fileName, contentType } = req.body;
 
-			if (!userId || !fileName || !contentType) {
+			if (!userId) {
+				res.status(401).json({ error: "Authentication required" });
+				return;
+			}
+
+			if (!fileName || !contentType) {
 				res.status(400).json({ error: "Missing required fields" });
 				return;
 			}
