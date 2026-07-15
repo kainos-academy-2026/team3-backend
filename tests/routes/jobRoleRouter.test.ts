@@ -5,6 +5,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
 	mockFindAllJobRoles: vi.fn(),
 	mockGetJobRoleMetadata: vi.fn(),
+	mockGenerateJobRolesCsvReport: vi.fn(),
 	mockFindJobRoleById: vi.fn(),
 	mockCreateJobRole: vi.fn(),
 	mockApplyForJobRole: vi.fn(),
@@ -32,6 +33,7 @@ vi.mock("../../src/services/jobRoleService.js", () => ({
 	JobRoleService: class JobRoleService {
 		findAllJobRoles = mocks.mockFindAllJobRoles;
 		getJobRoleMetadata = mocks.mockGetJobRoleMetadata;
+		generateJobRolesCsvReport = mocks.mockGenerateJobRolesCsvReport;
 		findJobRoleById = mocks.mockFindJobRoleById;
 		createJobRole = mocks.mockCreateJobRole;
 		applyForJobRole = mocks.mockApplyForJobRole;
@@ -212,6 +214,76 @@ describe("GET /api/job-roles/:id", () => {
 
 		const response = await request(app)
 			.get("/api/job-roles/1")
+			.set("Authorization", "Bearer valid-token");
+
+		expect(response.status).toBe(500);
+		expect(response.body).toEqual({ error: "Internal server error" });
+	});
+});
+
+describe("GET /api/job-roles/report", () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+	});
+
+	it("should return 401 when authorization header is missing", async () => {
+		const response = await request(app).get("/api/job-roles/report");
+
+		expect(response.status).toBe(401);
+		expect(response.body).toEqual({
+			error: "Missing or invalid authorization header",
+		});
+	});
+
+	it("should return 403 when authenticated user is not admin", async () => {
+		mocks.mockVerifyToken.mockResolvedValueOnce({
+			userId: 7,
+			email: "user@example.com",
+			role: "USER",
+		});
+
+		const response = await request(app)
+			.get("/api/job-roles/report")
+			.set("Authorization", "Bearer valid-token");
+
+		expect(response.status).toBe(403);
+		expect(response.body).toEqual({ error: "Forbidden" });
+	});
+
+	it("should return 200 with csv report when user is admin", async () => {
+		mocks.mockVerifyToken.mockResolvedValueOnce({
+			userId: 1,
+			email: "admin@example.com",
+			role: "ADMIN",
+		});
+		mocks.mockGenerateJobRolesCsvReport.mockResolvedValueOnce(
+			"id,roleName\n1,Backend Engineer",
+		);
+
+		const response = await request(app)
+			.get("/api/job-roles/report")
+			.set("Authorization", "Bearer valid-token");
+
+		expect(response.status).toBe(200);
+		expect(response.text).toContain("id,roleName");
+		expect(response.headers["content-type"]).toContain("text/csv");
+		expect(response.headers["content-disposition"]).toContain(
+			"attachment; filename=\"job-roles-report-",
+		);
+	});
+
+	it("should return 500 when service throws", async () => {
+		mocks.mockVerifyToken.mockResolvedValueOnce({
+			userId: 1,
+			email: "admin@example.com",
+			role: "ADMIN",
+		});
+		mocks.mockGenerateJobRolesCsvReport.mockRejectedValueOnce(
+			new Error("db down"),
+		);
+
+		const response = await request(app)
+			.get("/api/job-roles/report")
 			.set("Authorization", "Bearer valid-token");
 
 		expect(response.status).toBe(500);

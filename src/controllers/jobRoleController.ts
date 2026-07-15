@@ -20,6 +20,17 @@ export class JobRoleController {
 		try {
 			const metadata = await this.jobRoleService.getJobRoleMetadata();
 			res.status(200).json(metadata);
+	async downloadJobRolesReport(_req: Request, res: Response): Promise<void> {
+		try {
+			const csvReport = await this.jobRoleService.generateJobRolesCsvReport();
+			const today = new Date().toISOString().split("T")[0];
+
+			res.setHeader("Content-Type", "text/csv; charset=utf-8");
+			res.setHeader(
+				"Content-Disposition",
+				`attachment; filename="job-roles-report-${today}.csv"`,
+			);
+			res.status(200).send(csvReport);
 		} catch (error) {
 			console.error(error);
 			res.status(500).json({ error: "Internal server error" });

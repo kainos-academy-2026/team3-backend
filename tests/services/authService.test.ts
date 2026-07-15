@@ -60,18 +60,19 @@ describe("AuthService", () => {
 				id: 1,
 				email: "test@example.com",
 				passwordHash: "hashedpassword",
+				role: "ADMIN",
 			};
 
 			mockDao.findUserByEmail.mockResolvedValue(mockUser);
 			mockPasswordService.comparePasswords.mockResolvedValue(true);
 			mockTokenService.create.mockResolvedValue("mocked-jwt-token");
 
-			const token = await service.login({
+			const result = await service.login({
 				email: "test@example.com",
 				password: "password123",
 			});
 
-			expect(token).toBe("mocked-jwt-token");
+			expect(result).toEqual({ token: "mocked-jwt-token", role: "ADMIN" });
 			expect(mockTokenService.create).toHaveBeenCalledWith(mockUser);
 		});
 
@@ -80,6 +81,7 @@ describe("AuthService", () => {
 				id: 1,
 				email: "test@example.com",
 				passwordHash: "hashedpassword",
+				role: "USER",
 			});
 
 			mockPasswordService.comparePasswords.mockResolvedValue(true);

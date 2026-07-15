@@ -39,6 +39,10 @@ router.post(
 	requireAdmin,
 	validateBody(CreateJobRoleRequestSchema),
 	jobRoleController.createJobRole.bind(jobRoleController),
+	"/report",
+	authenticate,
+	requireAdmin,
+	jobRoleController.downloadJobRolesReport.bind(jobRoleController),
 );
 router.get(
 	"/:id",

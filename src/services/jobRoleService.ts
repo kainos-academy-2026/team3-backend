@@ -21,6 +21,12 @@ export class JobRoleService {
 		private readonly s3Service: S3Service,
 	) {}
 
+	private escapeCsvValue(value: string | number): string {
+		const stringValue = String(value);
+		const escapedValue = stringValue.replaceAll('"', '""');
+		return `"${escapedValue}"`;
+	}
+
 	async findAllJobRoles(): Promise<JobRoleResponseDto[]> {
 		const jobRoles = await this.jobRoleDao.findAllJobRoles();
 		return jobRoles.map((jobRole) => this.jobRoleMapper.toResponse(jobRole));
@@ -42,6 +48,41 @@ export class JobRoleService {
 				bandName: band.bandName,
 			})),
 		};
+	async generateJobRolesCsvReport(): Promise<string> {
+		const jobRoles = await this.jobRoleDao.findAllJobRoles();
+		const headers = [
+			"id",
+			"roleName",
+			"location",
+			"capability",
+			"band",
+			"closingDate",
+			"status",
+			"description",
+			"responsibilities",
+			"sharepointUrl",
+			"numberOfOpenPositions",
+		];
+
+		const rows = jobRoles.map((jobRole) =>
+			[
+				jobRole.id,
+				jobRole.roleName,
+				jobRole.location,
+				jobRole.capability.capabilityName,
+				jobRole.band.bandName,
+				jobRole.closingDate.toISOString().split("T")[0],
+				jobRole.status,
+				jobRole.description,
+				jobRole.responsibilities,
+				jobRole.sharepointUrl,
+				jobRole.numberOfOpenPositions,
+			]
+				.map((value) => this.escapeCsvValue(value))
+				.join(","),
+		);
+
+		return [headers.join(","), ...rows].join("\n");
 	}
 
 	async findJobRoleById(

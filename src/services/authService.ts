@@ -15,7 +15,7 @@ export class AuthService {
 		private readonly tokenService: TokenService,
 	) {}
 
-	async login(dto: LoginRequestDto): Promise<string> {
+	async login(dto: LoginRequestDto): Promise<{ token: string; role: string }> {
 		const user = await this.authDao.findUserByEmail(dto.email);
 		if (!user) {
 			throw new InvalidCredentialsError();
@@ -31,7 +31,7 @@ export class AuthService {
 
 		const token = await this.tokenService.create(user);
 
-		return token;
+		return { token, role: user.role };
 	}
 
 	async register(dto: RegisterRequestDto): Promise<void> {
