@@ -48,6 +48,8 @@ export class JobRoleService {
 				bandName: band.bandName,
 			})),
 		};
+	}
+
 	async generateJobRolesCsvReport(): Promise<string> {
 		const jobRoles = await this.jobRoleDao.findAllJobRoles();
 		const headers = [
