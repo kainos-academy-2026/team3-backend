@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
 	mockFindAllJobRoles: vi.fn(),
 	mockGetJobRoleMetadata: vi.fn(),
 	mockGenerateJobRolesCsvReport: vi.fn(),
+	mockGetJobRoleMetadata: vi.fn(),
 	mockFindJobRoleById: vi.fn(),
 	mockCreateJobRole: vi.fn(),
 	mockApplyForJobRole: vi.fn(),
@@ -34,6 +35,7 @@ vi.mock("../../src/services/jobRoleService.js", () => ({
 		findAllJobRoles = mocks.mockFindAllJobRoles;
 		getJobRoleMetadata = mocks.mockGetJobRoleMetadata;
 		generateJobRolesCsvReport = mocks.mockGenerateJobRolesCsvReport;
+		getJobRoleMetadata = mocks.mockGetJobRoleMetadata;
 		findJobRoleById = mocks.mockFindJobRoleById;
 		createJobRole = mocks.mockCreateJobRole;
 		applyForJobRole = mocks.mockApplyForJobRole;
@@ -268,7 +270,7 @@ describe("GET /api/job-roles/report", () => {
 		expect(response.text).toContain("id,roleName");
 		expect(response.headers["content-type"]).toContain("text/csv");
 		expect(response.headers["content-disposition"]).toContain(
-			"attachment; filename=\"job-roles-report-",
+			'attachment; filename="job-roles-report-',
 		);
 	});
 

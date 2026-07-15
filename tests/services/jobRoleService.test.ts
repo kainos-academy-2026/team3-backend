@@ -6,18 +6,22 @@ import type {
 	JobRoleWithRelations,
 } from "../../src/daos/jobRoleDao.js";
 import {
+	type CreateJobRoleRequestDto,
 	type JobRoleResponseDto,
 	JobRoleStatusDto,
 } from "../../src/dtos/jobRoleDto.js";
-import type { CreateJobRoleRequestDto } from "../../src/dtos/createJobRoleDto.js";
 import { InvalidJobRoleReferenceError } from "../../src/errors/InvalidJobRoleReferenceError.js";
 import type { JobRoleMapper } from "../../src/mappers/jobRoleMapper.js";
 import { JobRoleService } from "../../src/services/jobRoleService.js";
 import type { S3Service } from "../../src/services/s3Service.js";
 
-const mockJobRoleDao = {
+const mockDao = {
+	findAllCapabilities: vi.fn(),
+	findAllBands: vi.fn(),
 	findAllJobRoles: vi.fn(),
 	findJobRoleById: vi.fn(),
+	findCapabilityById: vi.fn(),
+	findBandById: vi.fn(),
 	createJobRole: vi.fn(),
 	createApplication: vi.fn(),
 };
@@ -45,8 +49,12 @@ describe("JobRoleService", () => {
 	let service: JobRoleService;
 	let jobRoleDao: Pick<
 		JobRoleDao,
+		| "findAllCapabilities"
+		| "findAllBands"
 		| "findAllJobRoles"
 		| "findJobRoleById"
+		| "findCapabilityById"
+		| "findBandById"
 		| "createJobRole"
 		| "createApplication"
 	>;
@@ -59,10 +67,14 @@ describe("JobRoleService", () => {
 		vi.clearAllMocks();
 
 		jobRoleDao = {
-			findAllJobRoles: mockJobRoleDao.findAllJobRoles,
-			findJobRoleById: mockJobRoleDao.findJobRoleById,
-			createJobRole: mockJobRoleDao.createJobRole,
-			createApplication: mockJobRoleDao.createApplication,
+			findAllCapabilities: mockDao.findAllCapabilities,
+			findAllBands: mockDao.findAllBands,
+			findAllJobRoles: mockDao.findAllJobRoles,
+			findJobRoleById: mockDao.findJobRoleById,
+			findCapabilityById: mockDao.findCapabilityById,
+			findBandById: mockDao.findBandById,
+			createJobRole: mockDao.createJobRole,
+			createApplication: mockDao.createApplication,
 		};
 
 		capabilityDao = {
@@ -94,17 +106,17 @@ describe("JobRoleService", () => {
 	});
 
 	it("should return mapped metadata from dao data", async () => {
-		vi.mocked(capabilityDao.findAllCapabilities).mockResolvedValueOnce([
+		vi.mocked(jobRoleDao.findAllCapabilities).mockResolvedValueOnce([
 			{ capabilityId: 2, capabilityName: "Engineering" },
 		]);
-		vi.mocked(bandDao.findAllBands).mockResolvedValueOnce([
+		vi.mocked(jobRoleDao.findAllBands).mockResolvedValueOnce([
 			{ bandId: 5, bandName: "Band 5" },
 		]);
 
 		const result = await service.getJobRoleMetadata();
 
-		expect(capabilityDao.findAllCapabilities).toHaveBeenCalledTimes(1);
-		expect(bandDao.findAllBands).toHaveBeenCalledTimes(1);
+		expect(jobRoleDao.findAllCapabilities).toHaveBeenCalledTimes(1);
+		expect(jobRoleDao.findAllBands).toHaveBeenCalledTimes(1);
 		expect(result).toEqual({
 			capabilities: [{ capabilityId: 2, capabilityName: "Engineering" }],
 			bands: [{ bandId: 5, bandName: "Band 5" }],
@@ -112,7 +124,7 @@ describe("JobRoleService", () => {
 	});
 
 	it("should throw when metadata dao calls fail", async () => {
-		vi.mocked(capabilityDao.findAllCapabilities).mockRejectedValueOnce(
+		vi.mocked(jobRoleDao.findAllCapabilities).mockRejectedValueOnce(
 			new Error("db down"),
 		);
 
@@ -335,11 +347,11 @@ describe("JobRoleService", () => {
 			numberOfOpenPositions: 2,
 		};
 
-		vi.mocked(capabilityDao.findCapabilityById).mockResolvedValueOnce({
+		vi.mocked(jobRoleDao.findCapabilityById).mockResolvedValueOnce({
 			capabilityId: 1,
 			capabilityName: "Engineering",
 		});
-		vi.mocked(bandDao.findBandById).mockResolvedValueOnce({
+		vi.mocked(jobRoleDao.findBandById).mockResolvedValueOnce({
 			bandId: 2,
 			bandName: "Band 2",
 		});
@@ -350,8 +362,8 @@ describe("JobRoleService", () => {
 
 		const result = await service.createJobRole(requestData);
 
-		expect(capabilityDao.findCapabilityById).toHaveBeenCalledWith(1);
-		expect(bandDao.findBandById).toHaveBeenCalledWith(2);
+		expect(jobRoleDao.findCapabilityById).toHaveBeenCalledWith(1);
+		expect(jobRoleDao.findBandById).toHaveBeenCalledWith(2);
 		expect(jobRoleDao.createJobRole).toHaveBeenCalledWith({
 			roleName: requestData.roleName,
 			location: requestData.location,
@@ -368,7 +380,7 @@ describe("JobRoleService", () => {
 	});
 
 	it("should throw InvalidJobRoleReferenceError when capability is missing", async () => {
-		vi.mocked(capabilityDao.findCapabilityById).mockResolvedValueOnce(null);
+		vi.mocked(jobRoleDao.findCapabilityById).mockResolvedValueOnce(null);
 
 		await expect(
 			service.createJobRole({

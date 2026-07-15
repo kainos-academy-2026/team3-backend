@@ -4,6 +4,10 @@ import type { JobRoleWithRelations } from "../../src/daos/jobRoleDao.js";
 const mocks = vi.hoisted(() => ({
 	findMany: vi.fn(),
 	findUnique: vi.fn(),
+	capabilityFindMany: vi.fn(),
+	bandFindMany: vi.fn(),
+	capabilityFindUnique: vi.fn(),
+	bandFindUnique: vi.fn(),
 	jobRoleCreate: vi.fn(),
 	create: vi.fn(),
 }));
@@ -14,6 +18,14 @@ vi.mock("../../src/prismaClient.js", () => ({
 			findMany: mocks.findMany,
 			findUnique: mocks.findUnique,
 			create: mocks.jobRoleCreate,
+		},
+		capability: {
+			findMany: mocks.capabilityFindMany,
+			findUnique: mocks.capabilityFindUnique,
+		},
+		band: {
+			findMany: mocks.bandFindMany,
+			findUnique: mocks.bandFindUnique,
 		},
 		application: {
 			create: mocks.create,
@@ -62,6 +74,40 @@ describe("JobRoleDao", () => {
 		expect(result).toEqual(dbRows);
 	});
 
+	it("should return all capabilities ordered by name", async () => {
+		mocks.capabilityFindMany.mockResolvedValueOnce([
+			{ capabilityId: 1, capabilityName: "Engineering" },
+		]);
+
+		const dao = new JobRoleDao();
+		const result = await dao.findAllCapabilities();
+
+		expect(mocks.capabilityFindMany).toHaveBeenCalledWith({
+			orderBy: {
+				capabilityName: "asc",
+			},
+		});
+		expect(result).toEqual([
+			{ capabilityId: 1, capabilityName: "Engineering" },
+		]);
+	});
+
+	it("should return all bands ordered by name", async () => {
+		mocks.bandFindMany.mockResolvedValueOnce([
+			{ bandId: 1, bandName: "Band 1" },
+		]);
+
+		const dao = new JobRoleDao();
+		const result = await dao.findAllBands();
+
+		expect(mocks.bandFindMany).toHaveBeenCalledWith({
+			orderBy: {
+				bandName: "asc",
+			},
+		});
+		expect(result).toEqual([{ bandId: 1, bandName: "Band 1" }]);
+	});
+
 	it("should return one job role by id with relations", async () => {
 		const dbRow = {
 			id: 1,
@@ -92,6 +138,42 @@ describe("JobRoleDao", () => {
 			},
 		});
 		expect(result).toEqual(dbRow);
+	});
+
+	it("should find capability by id", async () => {
+		mocks.capabilityFindUnique.mockResolvedValueOnce({
+			capabilityId: 7,
+			capabilityName: "Data",
+		});
+
+		const dao = new JobRoleDao();
+		const result = await dao.findCapabilityById(7);
+
+		expect(mocks.capabilityFindUnique).toHaveBeenCalledWith({
+			where: { capabilityId: 7 },
+		});
+		expect(result).toEqual({
+			capabilityId: 7,
+			capabilityName: "Data",
+		});
+	});
+
+	it("should find band by id", async () => {
+		mocks.bandFindUnique.mockResolvedValueOnce({
+			bandId: 4,
+			bandName: "Band 4",
+		});
+
+		const dao = new JobRoleDao();
+		const result = await dao.findBandById(4);
+
+		expect(mocks.bandFindUnique).toHaveBeenCalledWith({
+			where: { bandId: 4 },
+		});
+		expect(result).toEqual({
+			bandId: 4,
+			bandName: "Band 4",
+		});
 	});
 
 	it("should create a job role with open status and relations included", async () => {

@@ -36,6 +36,7 @@ describe("JobRoleController", () => {
 			findAllJobRoles: mockService.findAllJobRoles,
 			getJobRoleMetadata: mockService.getJobRoleMetadata,
 			generateJobRolesCsvReport: mockService.generateJobRolesCsvReport,
+			getJobRoleMetadata: mockService.getJobRoleMetadata,
 			findJobRoleById: mockService.findJobRoleById,
 			createJobRole: mockService.createJobRole,
 			applyForJobRole: mockService.applyForJobRole,
@@ -112,6 +113,11 @@ describe("JobRoleController", () => {
 		);
 
 		await controller.getJobRoleMetadata(req, res);
+
+		expect(res.status).toHaveBeenCalledWith(500);
+		expect(res.json).toHaveBeenCalledWith({ error: "Internal server error" });
+	});
+
 	it("should return csv report with file download headers", async () => {
 		vi.mocked(jobRoleService.generateJobRolesCsvReport).mockResolvedValueOnce(
 			"id,roleName\n1,Backend Engineer",
@@ -126,7 +132,7 @@ describe("JobRoleController", () => {
 		);
 		expect(res.setHeader).toHaveBeenCalledWith(
 			"Content-Disposition",
-			expect.stringContaining("attachment; filename=\"job-roles-report-"),
+			expect.stringContaining('attachment; filename="job-roles-report-'),
 		);
 		expect(res.status).toHaveBeenCalledWith(200);
 		expect(res.send).toHaveBeenCalledWith("id,roleName\n1,Backend Engineer");

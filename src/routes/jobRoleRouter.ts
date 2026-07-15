@@ -27,6 +27,7 @@ const jobRoleService = new JobRoleService(
 const jobRoleController = new JobRoleController(jobRoleService);
 
 router.get("/", jobRoleController.getAllJobRoles.bind(jobRoleController));
+
 router.get(
 	"/metadata",
 	authenticate,
@@ -43,6 +44,19 @@ router.post(
 	authenticate,
 	requireAdmin,
 	jobRoleController.downloadJobRolesReport.bind(jobRoleController),
+);
+router.get(
+	"/metadata",
+	authenticate,
+	requireAdmin,
+	jobRoleController.getJobRoleMetadata.bind(jobRoleController),
+);
+router.post(
+	"/",
+	authenticate,
+	requireAdmin,
+	validateBody(CreateJobRoleRequestSchema),
+	jobRoleController.createJobRole.bind(jobRoleController),
 );
 router.get(
 	"/:id",
