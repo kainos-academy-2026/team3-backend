@@ -2,12 +2,12 @@ import type { BandDao } from "../daos/bandDao.js";
 import type { CapabilityDao } from "../daos/capabilityDao.js";
 import type { JobRoleDao } from "../daos/jobRoleDao.js";
 import type {
-	CreateJobRoleRequestDto,
 	JobRoleApplicationResponseDto,
 	JobRoleDetailedResponseDto,
-	JobRoleMetadataResponseDto,
 	JobRoleResponseDto,
 } from "../dtos/jobRoleDto.js";
+import type { CreateJobRoleRequestDto } from "../dtos/createJobRoleDto.js";
+import type { JobRoleMetadataResponseDto } from "../dtos/jobRoleMetadataDto.js";
 import { InvalidJobRoleReferenceError } from "../errors/InvalidJobRoleReferenceError.js";
 import type { JobRoleMapper } from "../mappers/jobRoleMapper.js";
 import type { S3Service } from "./s3Service.js";

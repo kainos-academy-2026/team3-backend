@@ -39,23 +39,6 @@ export interface JobRoleDetailedResponseDto {
 	numberOfOpenPositions: number;
 }
 
-export interface JobRoleMetadataResponseDto {
-	capabilities: CapabilityDto[];
-	bands: BandDto[];
-}
-
-export interface CreateJobRoleRequestDto {
-	roleName: string;
-	location: string;
-	capabilityId: number;
-	bandId: number;
-	closingDate: string;
-	description: string;
-	responsibilities: string;
-	sharepointUrl: string;
-	numberOfOpenPositions: number;
-}
-
 export enum JobRoleApplicationStatusDto {
 	InProgress = "In Progress",
 }
