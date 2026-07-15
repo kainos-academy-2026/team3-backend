@@ -42,7 +42,10 @@ describe("AuthController", () => {
 
 	describe("login", () => {
 		it("should return 200 and set token cookie on successful login", async () => {
-			mockService.login.mockResolvedValue("jwt-token-here");
+			mockService.login.mockResolvedValue({
+				token: "jwt-token-here",
+				role: "ADMIN",
+			});
 			req.body = { email: "test@example.com", password: "password123" };
 
 			await controller.login(req as Request, res as Response);
@@ -50,6 +53,7 @@ describe("AuthController", () => {
 			expect(res.status).toHaveBeenCalledWith(200);
 			expect(res.json).toHaveBeenCalledWith({
 				token: "jwt-token-here",
+				role: "ADMIN",
 				message: "Login successful",
 			});
 		});

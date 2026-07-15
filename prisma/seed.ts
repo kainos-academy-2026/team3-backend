@@ -46,14 +46,27 @@ async function main(): Promise<void> {
 		where: { email: "test@example.com" },
 		update: {
 			passwordHash: await argon2.hash("TestPassword123"),
+			// no role here if you want to preserve manual role changes
 		},
 		create: {
-			id: 1,
 			email: "test@example.com",
 			passwordHash: await argon2.hash("TestPassword123"),
+			role: "USER",
 		},
 	});
 
+	await prisma.user.upsert({
+		where: { email: "admin@example.com" },
+		update: {
+			passwordHash: await argon2.hash("AdminPassword123"),
+			role: "ADMIN",
+		},
+		create: {
+			email: "admin@example.com",
+			passwordHash: await argon2.hash("AdminPassword123"),
+			role: "ADMIN",
+		},
+	});
 	await prisma.jobRole.createMany({
 		data: [
 			{
