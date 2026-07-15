@@ -1,4 +1,4 @@
-import type { Prisma } from "@prisma/client";
+import type { Band, Capability, Prisma } from "@prisma/client";
 import {
 	JobRoleApplicationStatusDto,
 	JobRoleStatusDto,
@@ -8,6 +8,19 @@ import prisma from "../prismaClient.js";
 export type JobRoleWithRelations = Prisma.JobRoleGetPayload<{
 	include: { capability: true; band: true };
 }>;
+
+export interface UpdateJobRoleData {
+	roleName?: string;
+	location?: string;
+	capabilityId?: number;
+	bandId?: number;
+	closingDate?: Date;
+	status?: JobRoleStatusDto;
+	description?: string;
+	responsibilities?: string;
+	sharepointUrl?: string;
+	numberOfOpenPositions?: number;
+}
 
 export class JobRoleDao {
 	async findAllJobRoles(): Promise<JobRoleWithRelations[]> {
@@ -45,6 +58,32 @@ export class JobRoleDao {
 	async findJobRoleById(id: number): Promise<JobRoleWithRelations | null> {
 		return prisma.jobRole.findUnique({
 			where: { id },
+			include: {
+				capability: true,
+				band: true,
+			},
+		});
+	}
+
+	async findCapabilityById(capabilityId: number): Promise<Capability | null> {
+		return prisma.capability.findUnique({
+			where: { capabilityId },
+		});
+	}
+
+	async findBandById(bandId: number): Promise<Band | null> {
+		return prisma.band.findUnique({
+			where: { bandId },
+		});
+	}
+
+	async updateJobRole(
+		id: number,
+		data: UpdateJobRoleData,
+	): Promise<JobRoleWithRelations> {
+		return prisma.jobRole.update({
+			where: { id },
+			data,
 			include: {
 				capability: true,
 				band: true,

@@ -3,8 +3,11 @@ import { JobRoleController } from "../controllers/jobRoleController.js";
 import { BandDao } from "../daos/bandDao.js";
 import { CapabilityDao } from "../daos/capabilityDao.js";
 import { JobRoleDao } from "../daos/jobRoleDao.js";
-import { CreateJobRoleRequestSchema } from "../dtos/createJobRoleDto.js";
-import { JobRoleIdParamSchema } from "../dtos/jobRoleDto.js";
+import {
+	JobRoleIdParamSchema,
+	UpdateJobRoleRequestSchema,
+	CreateJobRoleRequestSchema,
+} from "../dtos/jobRoleDto.js";
 import { JobRoleMapper } from "../mappers/jobRoleMapper.js";
 import { authenticate, requireAdmin } from "../middleware/auth.js";
 import { validateBody, validateParams } from "../middleware/validate.js";
@@ -52,6 +55,14 @@ router.get(
 	authenticate,
 	validateParams(JobRoleIdParamSchema),
 	jobRoleController.getJobRoleById.bind(jobRoleController),
+);
+router.patch(
+	"/:id",
+	authenticate,
+	requireAdmin,
+	validateParams(JobRoleIdParamSchema),
+	validateBody(UpdateJobRoleRequestSchema),
+	jobRoleController.updateJobRole.bind(jobRoleController),
 );
 router.post(
 	"/:id/apply",

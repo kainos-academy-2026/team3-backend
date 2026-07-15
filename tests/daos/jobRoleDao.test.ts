@@ -5,7 +5,10 @@ const mocks = vi.hoisted(() => ({
 	findMany: vi.fn(),
 	findUnique: vi.fn(),
 	jobRoleCreate: vi.fn(),
+	findCapabilityUnique: vi.fn(),
+	findBandUnique: vi.fn(),
 	create: vi.fn(),
+	update: vi.fn(),
 }));
 
 vi.mock("../../src/prismaClient.js", () => ({
@@ -14,6 +17,13 @@ vi.mock("../../src/prismaClient.js", () => ({
 			findMany: mocks.findMany,
 			findUnique: mocks.findUnique,
 			create: mocks.jobRoleCreate,
+			update: mocks.update,
+		},
+		capability: {
+			findUnique: mocks.findCapabilityUnique,
+		},
+		band: {
+			findUnique: mocks.findBandUnique,
 		},
 		application: {
 			create: mocks.create,
@@ -95,50 +105,123 @@ describe("JobRoleDao", () => {
 	});
 
 	it("should create a job role with open status and relations included", async () => {
-		const createdJobRole = {
-			id: 2,
-			roleName: "Senior Backend Engineer",
-			location: "Dublin",
-			capabilityId: 1,
-			bandId: 2,
-			closingDate: new Date("2026-08-31"),
-			status: JobRoleStatusDto.Open,
-			description: "Own backend services and integrations.",
-			responsibilities: "Build APIs, review code, support delivery.",
-			sharepointUrl: "https://example.sharepoint.com/job-role",
-			numberOfOpenPositions: 2,
-			capability: { capabilityId: 1, capabilityName: "Engineering" },
-			band: { bandId: 2, bandName: "Band 2" },
-		} as unknown as JobRoleWithRelations;
+        const createdJobRole = {
+            id: 2,
+            roleName: "Senior Backend Engineer",
+            location: "Dublin",
+            capabilityId: 1,
+            bandId: 2,
+            closingDate: new Date("2026-08-31"),
+            status: JobRoleStatusDto.Open,
+            description: "Own backend services and integrations.",
+            responsibilities: "Build APIs, review code, support delivery.",
+            sharepointUrl: "https://example.sharepoint.com/job-role",
+            numberOfOpenPositions: 2,
+            capability: { capabilityId: 1, capabilityName: "Engineering" },
+            band: { bandId: 2, bandName: "Band 2" },
+        } as unknown as JobRoleWithRelations;
+ 
+        mocks.jobRoleCreate.mockResolvedValueOnce(createdJobRole);
+ 
+        const dao = new JobRoleDao();
+        const input = {
+            roleName: "Senior Backend Engineer",
+            location: "Dublin",
+            capabilityId: 1,
+            bandId: 2,
+            closingDate: new Date("2026-08-31"),
+            description: "Own backend services and integrations.",
+            responsibilities: "Build APIs, review code, support delivery.",
+            sharepointUrl: "https://example.sharepoint.com/job-role",
+            numberOfOpenPositions: 2,
+        };
+ 
+        const result = await dao.createJobRole(input);
+ 
+        expect(mocks.jobRoleCreate).toHaveBeenCalledWith({
+            data: {
+                ...input,
+                status: JobRoleStatusDto.Open,
+            },
+            include: {
+                capability: true,
+                band: true,
+            },
+        });
+        expect(result).toEqual(createdJobRole);
+    });
+ 
 
-		mocks.jobRoleCreate.mockResolvedValueOnce(createdJobRole);
-
-		const dao = new JobRoleDao();
-		const input = {
-			roleName: "Senior Backend Engineer",
-			location: "Dublin",
-			capabilityId: 1,
-			bandId: 2,
-			closingDate: new Date("2026-08-31"),
-			description: "Own backend services and integrations.",
-			responsibilities: "Build APIs, review code, support delivery.",
-			sharepointUrl: "https://example.sharepoint.com/job-role",
-			numberOfOpenPositions: 2,
+	it("should return one capability by id", async () => {
+		const capability = {
+			capabilityId: 10,
+			capabilityName: "Engineering",
 		};
 
-		const result = await dao.createJobRole(input);
+		mocks.findCapabilityUnique.mockResolvedValueOnce(capability);
 
-		expect(mocks.jobRoleCreate).toHaveBeenCalledWith({
-			data: {
-				...input,
-				status: JobRoleStatusDto.Open,
-			},
+		const dao = new JobRoleDao();
+		const result = await dao.findCapabilityById(10);
+
+		expect(mocks.findCapabilityUnique).toHaveBeenCalledWith({
+			where: { capabilityId: 10 },
+		});
+		expect(result).toEqual(capability);
+	});
+
+	it("should return one band by id", async () => {
+		const band = {
+			bandId: 3,
+			bandName: "Band 3",
+		};
+
+		mocks.findBandUnique.mockResolvedValueOnce(band);
+
+		const dao = new JobRoleDao();
+		const result = await dao.findBandById(3);
+
+		expect(mocks.findBandUnique).toHaveBeenCalledWith({
+			where: { bandId: 3 },
+		});
+		expect(result).toEqual(band);
+	});
+
+	it("should update a job role with provided patch fields and include relations", async () => {
+		const dbRow = {
+			id: 1,
+			roleName: "Senior Backend Engineer",
+			location: "Dublin",
+			capabilityId: 10,
+			bandId: 3,
+			closingDate: new Date("2026-09-15"),
+			status: "Open",
+			description: "Backend role description",
+			responsibilities: "Build APIs",
+			sharepointUrl: "https://example.com/backend",
+			numberOfOpenPositions: 3,
+			capability: { capabilityId: 10, capabilityName: "Engineering" },
+			band: { bandId: 3, bandName: "Band 3" },
+		} as unknown as JobRoleWithRelations;
+
+		const patchData = {
+			roleName: "Senior Backend Engineer",
+			status: JobRoleStatusDto.Open,
+		};
+
+		mocks.update.mockResolvedValueOnce(dbRow);
+
+		const dao = new JobRoleDao();
+		const result = await dao.updateJobRole(1, patchData);
+
+		expect(mocks.update).toHaveBeenCalledWith({
+			where: { id: 1 },
+			data: patchData,
 			include: {
 				capability: true,
 				band: true,
 			},
 		});
-		expect(result).toEqual(createdJobRole);
+		expect(result).toEqual(dbRow);
 	});
 
 	it("should create an application with in progress status", async () => {

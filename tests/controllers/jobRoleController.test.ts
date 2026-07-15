@@ -4,9 +4,11 @@ import { JobRoleController } from "../../src/controllers/jobRoleController.js";
 import {
 	type JobRoleResponseDto,
 	JobRoleStatusDto,
+	type UpdateJobRoleRequestDto,
 } from "../../src/dtos/jobRoleDto.js";
 import type { JobRoleMetadataResponseDto } from "../../src/dtos/jobRoleMetadataDto.js";
 import { InvalidJobRoleReferenceError } from "../../src/errors/InvalidJobRoleReferenceError.js";
+import { JobRoleNotFoundError } from "../../src/errors/JobRoleNotFoundError.js";
 import type { JobRoleService } from "../../src/services/jobRoleService.js";
 
 const mockService = {
@@ -16,6 +18,7 @@ const mockService = {
 	findJobRoleById: vi.fn(),
 	createJobRole: vi.fn(),
 	applyForJobRole: vi.fn(),
+	updateJobRole: vi.fn(),
 };
 
 describe("JobRoleController", () => {
@@ -26,6 +29,7 @@ describe("JobRoleController", () => {
 		| "getJobRoleMetadata"
 		| "findJobRoleById"
 		| "createJobRole"
+		| "updateJobRole"
 		| "generateJobRolesCsvReport"
 		| "applyForJobRole"
 	>;
@@ -42,6 +46,7 @@ describe("JobRoleController", () => {
 			findJobRoleById: mockService.findJobRoleById,
 			createJobRole: mockService.createJobRole,
 			applyForJobRole: mockService.applyForJobRole,
+			updateJobRole: mockService.updateJobRole,
 		};
 
 		controller = new JobRoleController(jobRoleService as JobRoleService);
@@ -303,89 +308,133 @@ describe("JobRoleController", () => {
 	});
 
 	it("should return 201 when createJobRole succeeds", async () => {
-		const payload = {
+        const payload = {
+            roleName: "Senior Backend Engineer",
+            location: "Dublin",
+            capabilityId: 1,
+            bandId: 2,
+            closingDate: "2026-08-31",
+            description: "Own backend services and integrations.",
+            responsibilities: "Build APIs, review code, support delivery.",
+            sharepointUrl: "https://example.sharepoint.com/job-role",
+            numberOfOpenPositions: 2,
+        };
+ 
+        const createdJobRole = {
+            id: 10,
+            ...payload,
+            capability: {
+                capabilityId: 1,
+                capabilityName: "Engineering",
+            },
+            band: {
+                bandId: 2,
+                bandName: "Band 2",
+            },
+            status: JobRoleStatusDto.Open,
+        };
+ 
+        req = { body: payload } as Request;
+        vi.mocked(jobRoleService.createJobRole).mockResolvedValueOnce(
+            createdJobRole,
+        );
+ 
+        await controller.createJobRole(req, res);
+ 
+        expect(jobRoleService.createJobRole).toHaveBeenCalledWith(payload);
+        expect(res.status).toHaveBeenCalledWith(201);
+        expect(res.json).toHaveBeenCalledWith(createdJobRole);
+    });
+
+
+	it("should return 200 with updated job role", async () => {
+		const updatePayload: UpdateJobRoleRequestDto = {
+			roleName: "Senior Backend Engineer",
+			status: JobRoleStatusDto.Closed,
+		};
+		const updatedJobRole = {
+			id: 1,
 			roleName: "Senior Backend Engineer",
 			location: "Dublin",
-			capabilityId: 1,
-			bandId: 2,
-			closingDate: "2026-08-31",
-			description: "Own backend services and integrations.",
-			responsibilities: "Build APIs, review code, support delivery.",
-			sharepointUrl: "https://example.sharepoint.com/job-role",
-			numberOfOpenPositions: 2,
-		};
-
-		const createdJobRole = {
-			id: 10,
-			...payload,
 			capability: {
 				capabilityId: 1,
 				capabilityName: "Engineering",
 			},
 			band: {
-				bandId: 2,
-				bandName: "Band 2",
+				bandId: 1,
+				bandName: "Band 1",
 			},
-			status: JobRoleStatusDto.Open,
+			closingDate: "2026-08-31",
+			status: JobRoleStatusDto.Closed,
+			description: "Backend role description",
+			responsibilities: "Build APIs",
+			sharepointUrl: "https://example.com/backend",
+			numberOfOpenPositions: 2,
 		};
 
-		req = { body: payload } as Request;
-		vi.mocked(jobRoleService.createJobRole).mockResolvedValueOnce(
-			createdJobRole,
+		req = {
+			params: { id: "1" },
+			body: updatePayload,
+		} as unknown as Request;
+
+		vi.mocked(jobRoleService.updateJobRole).mockResolvedValueOnce(
+			updatedJobRole,
 		);
 
-		await controller.createJobRole(req, res);
+		await controller.updateJobRole(req, res);
 
-		expect(jobRoleService.createJobRole).toHaveBeenCalledWith(payload);
-		expect(res.status).toHaveBeenCalledWith(201);
-		expect(res.json).toHaveBeenCalledWith(createdJobRole);
+		expect(jobRoleService.updateJobRole).toHaveBeenCalledWith(1, updatePayload);
+		expect(res.status).toHaveBeenCalledWith(200);
+		expect(res.json).toHaveBeenCalledWith(updatedJobRole);
 	});
 
-	it("should return 400 when createJobRole has invalid references", async () => {
+	it("should return 404 when update target job role is not found", async () => {
 		req = {
-			body: {
-				roleName: "Senior Backend Engineer",
-				location: "Dublin",
-				capabilityId: 999,
-				bandId: 2,
-				closingDate: "2026-08-31",
-				description: "Own backend services and integrations.",
-				responsibilities: "Build APIs, review code, support delivery.",
-				sharepointUrl: "https://example.sharepoint.com/job-role",
-				numberOfOpenPositions: 2,
-			},
-		} as Request;
-		vi.mocked(jobRoleService.createJobRole).mockRejectedValueOnce(
-			new InvalidJobRoleReferenceError("Capability with ID 999 does not exist"),
+			params: { id: "999" },
+			body: { roleName: "Updated" },
+		} as unknown as Request;
+
+		vi.mocked(jobRoleService.updateJobRole).mockRejectedValueOnce(
+			new JobRoleNotFoundError(999),
 		);
 
-		await controller.createJobRole(req, res);
+		await controller.updateJobRole(req, res);
 
-		expect(res.status).toHaveBeenCalledWith(400);
+		expect(res.status).toHaveBeenCalledWith(404);
 		expect(res.json).toHaveBeenCalledWith({
-			error: "Capability with ID 999 does not exist",
+			error: "Job role with id 999 was not found",
 		});
 	});
 
-	it("should return 500 when createJobRole throws generic error", async () => {
+	it("should return 404 when update references are invalid", async () => {
 		req = {
-			body: {
-				roleName: "Senior Backend Engineer",
-				location: "Dublin",
-				capabilityId: 1,
-				bandId: 2,
-				closingDate: "2026-08-31",
-				description: "Own backend services and integrations.",
-				responsibilities: "Build APIs, review code, support delivery.",
-				sharepointUrl: "https://example.sharepoint.com/job-role",
-				numberOfOpenPositions: 2,
-			},
-		} as Request;
-		vi.mocked(jobRoleService.createJobRole).mockRejectedValueOnce(
+			params: { id: "1" },
+			body: { capabilityId: 999 },
+		} as unknown as Request;
+
+		vi.mocked(jobRoleService.updateJobRole).mockRejectedValueOnce(
+			new InvalidJobRoleReferenceError("Capability with id 999 was not found"),
+		);
+
+		await controller.updateJobRole(req, res);
+
+		expect(res.status).toHaveBeenCalledWith(404);
+		expect(res.json).toHaveBeenCalledWith({
+			error: "Capability with id 999 was not found",
+		});
+	});
+
+	it("should return 500 when updateJobRole throws an unexpected error", async () => {
+		req = {
+			params: { id: "1" },
+			body: { roleName: "Updated" },
+		} as unknown as Request;
+
+		vi.mocked(jobRoleService.updateJobRole).mockRejectedValueOnce(
 			new Error("db down"),
 		);
 
-		await controller.createJobRole(req, res);
+		await controller.updateJobRole(req, res);
 
 		expect(res.status).toHaveBeenCalledWith(500);
 		expect(res.json).toHaveBeenCalledWith({ error: "Internal server error" });

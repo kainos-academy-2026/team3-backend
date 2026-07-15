@@ -9,8 +9,10 @@ import type { CreateJobRoleRequestDto } from "../../src/dtos/createJobRoleDto.js
 import {
 	type JobRoleResponseDto,
 	JobRoleStatusDto,
+	type UpdateJobRoleRequestDto,
 } from "../../src/dtos/jobRoleDto.js";
 import { InvalidJobRoleReferenceError } from "../../src/errors/InvalidJobRoleReferenceError.js";
+import { JobRoleNotFoundError } from "../../src/errors/JobRoleNotFoundError.js";
 import type { JobRoleMapper } from "../../src/mappers/jobRoleMapper.js";
 import { JobRoleService } from "../../src/services/jobRoleService.js";
 import type { S3Service } from "../../src/services/s3Service.js";
@@ -19,6 +21,9 @@ const mockJobRoleDao = {
 	findAllJobRoles: vi.fn(),
 	findJobRoleById: vi.fn(),
 	createJobRole: vi.fn(),
+	findCapabilityById: vi.fn(),
+	findBandById: vi.fn(),
+	updateJobRole: vi.fn(),
 	createApplication: vi.fn(),
 };
 
@@ -48,6 +53,9 @@ describe("JobRoleService", () => {
 		| "findAllJobRoles"
 		| "findJobRoleById"
 		| "createJobRole"
+		| "findCapabilityById"
+		| "findBandById"
+		| "updateJobRole"
 		| "createApplication"
 	>;
 	let capabilityDao: Pick<
@@ -65,17 +73,10 @@ describe("JobRoleService", () => {
 			findAllJobRoles: mockJobRoleDao.findAllJobRoles,
 			findJobRoleById: mockJobRoleDao.findJobRoleById,
 			createJobRole: mockJobRoleDao.createJobRole,
+			findCapabilityById: mockJobRoleDao.findCapabilityById,
+			findBandById: mockJobRoleDao.findBandById,
+			updateJobRole: mockJobRoleDao.updateJobRole,
 			createApplication: mockJobRoleDao.createApplication,
-		};
-
-		capabilityDao = {
-			findAllCapabilities: mockCapabilityDao.findAllCapabilities,
-			findCapabilityById: mockCapabilityDao.findCapabilityById,
-		};
-
-		bandDao = {
-			findAllBands: mockBandDao.findAllBands,
-			findBandById: mockBandDao.findBandById,
 		};
 
 		capabilityDao = {
@@ -501,5 +502,186 @@ describe("JobRoleService", () => {
 		await expect(
 			service.applyForJobRole(7, 2, "cv.pdf", "application/pdf"),
 		).rejects.toThrow("s3 down");
+	});
+
+	it("should update a job role and return mapped response", async () => {
+		const existingJobRole = {
+			id: 1,
+			roleName: "Backend Engineer",
+			location: "Dublin",
+			capabilityId: 10,
+			bandId: 3,
+			closingDate: new Date("2026-08-31"),
+			status: "Open",
+			description: "Backend role description",
+			responsibilities: "Build APIs",
+			sharepointUrl: "https://example.com/backend",
+			numberOfOpenPositions: 3,
+			capability: {
+				capabilityId: 10,
+				capabilityName: "Engineering",
+			},
+			band: {
+				bandId: 3,
+				bandName: "Band 3",
+			},
+		} as JobRoleWithRelations;
+		const updatedJobRole = {
+			...existingJobRole,
+			roleName: "Senior Backend Engineer",
+			closingDate: new Date("2026-09-15"),
+		} as JobRoleWithRelations;
+		const updatePayload: UpdateJobRoleRequestDto = {
+			roleName: "Senior Backend Engineer",
+			capabilityId: 10,
+			bandId: 3,
+			closingDate: "2026-09-15",
+		};
+		const mappedUpdatedJobRole = {
+			id: 1,
+			roleName: "Senior Backend Engineer",
+			location: "Dublin",
+			capability: {
+				capabilityId: 10,
+				capabilityName: "Engineering",
+			},
+			band: {
+				bandId: 3,
+				bandName: "Band 3",
+			},
+			closingDate: "2026-09-15",
+			status: JobRoleStatusDto.Open,
+			description: "Backend role description",
+			responsibilities: "Build APIs",
+			sharepointUrl: "https://example.com/backend",
+			numberOfOpenPositions: 3,
+		};
+
+		vi.mocked(jobRoleDao.findJobRoleById).mockResolvedValueOnce(
+			existingJobRole,
+		);
+		vi.mocked(jobRoleDao.findCapabilityById).mockResolvedValueOnce({
+			capabilityId: 10,
+			capabilityName: "Engineering",
+		});
+		vi.mocked(jobRoleDao.findBandById).mockResolvedValueOnce({
+			bandId: 3,
+			bandName: "Band 3",
+		});
+		vi.mocked(jobRoleDao.updateJobRole).mockResolvedValueOnce(updatedJobRole);
+		vi.mocked(jobRoleMapper.toDetailedResponse).mockReturnValueOnce(
+			mappedUpdatedJobRole,
+		);
+
+		const result = await service.updateJobRole(1, updatePayload);
+
+		expect(jobRoleDao.findJobRoleById).toHaveBeenCalledWith(1);
+		expect(jobRoleDao.findCapabilityById).toHaveBeenCalledWith(10);
+		expect(jobRoleDao.findBandById).toHaveBeenCalledWith(3);
+		expect(jobRoleDao.updateJobRole).toHaveBeenCalledWith(1, {
+			roleName: "Senior Backend Engineer",
+			capabilityId: 10,
+			bandId: 3,
+			closingDate: new Date("2026-09-15"),
+		});
+		expect(jobRoleMapper.toDetailedResponse).toHaveBeenCalledWith(
+			updatedJobRole,
+		);
+		expect(result).toEqual(mappedUpdatedJobRole);
+	});
+
+	it("should throw JobRoleNotFoundError when target job role is missing", async () => {
+		vi.mocked(jobRoleDao.findJobRoleById).mockResolvedValueOnce(null);
+
+		await expect(
+			service.updateJobRole(999, { roleName: "Updated" }),
+		).rejects.toBeInstanceOf(JobRoleNotFoundError);
+		expect(jobRoleDao.findCapabilityById).not.toHaveBeenCalled();
+		expect(jobRoleDao.findBandById).not.toHaveBeenCalled();
+		expect(jobRoleDao.updateJobRole).not.toHaveBeenCalled();
+	});
+
+	it("should throw InvalidJobRoleReferenceError when capability does not exist", async () => {
+		vi.mocked(jobRoleDao.findJobRoleById).mockResolvedValueOnce(
+			{} as JobRoleWithRelations,
+		);
+		vi.mocked(jobRoleDao.findCapabilityById).mockResolvedValueOnce(null);
+
+		await expect(
+			service.updateJobRole(1, { capabilityId: 999 }),
+		).rejects.toBeInstanceOf(InvalidJobRoleReferenceError);
+		expect(jobRoleDao.findBandById).not.toHaveBeenCalled();
+		expect(jobRoleDao.updateJobRole).not.toHaveBeenCalled();
+	});
+
+	it("should throw InvalidJobRoleReferenceError when band does not exist", async () => {
+		vi.mocked(jobRoleDao.findJobRoleById).mockResolvedValueOnce(
+			{} as JobRoleWithRelations,
+		);
+		vi.mocked(jobRoleDao.findBandById).mockResolvedValueOnce(null);
+
+		await expect(
+			service.updateJobRole(1, { bandId: 999 }),
+		).rejects.toBeInstanceOf(InvalidJobRoleReferenceError);
+		expect(jobRoleDao.updateJobRole).not.toHaveBeenCalled();
+	});
+
+	it("should not lookup capability or band when ids are not provided", async () => {
+		vi.mocked(jobRoleDao.findJobRoleById).mockResolvedValueOnce(
+			{} as JobRoleWithRelations,
+		);
+		vi.mocked(jobRoleDao.updateJobRole).mockResolvedValueOnce(
+			{} as JobRoleWithRelations,
+		);
+		vi.mocked(jobRoleMapper.toDetailedResponse).mockReturnValueOnce({
+			id: 1,
+			roleName: "Updated",
+			location: "Dublin",
+			capability: { capabilityId: 1, capabilityName: "Engineering" },
+			band: { bandId: 1, bandName: "Band 1" },
+			closingDate: "2026-08-31",
+			status: JobRoleStatusDto.Open,
+			description: "Description",
+			responsibilities: "Responsibilities",
+			sharepointUrl: "https://example.com",
+			numberOfOpenPositions: 1,
+		});
+
+		await service.updateJobRole(1, { roleName: "Updated" });
+
+		expect(jobRoleDao.findCapabilityById).not.toHaveBeenCalled();
+		expect(jobRoleDao.findBandById).not.toHaveBeenCalled();
+		expect(jobRoleDao.updateJobRole).toHaveBeenCalledWith(1, {
+			roleName: "Updated",
+			closingDate: undefined,
+		});
+	});
+
+	it("should convert closingDate to Date before dao update", async () => {
+		vi.mocked(jobRoleDao.findJobRoleById).mockResolvedValueOnce(
+			{} as JobRoleWithRelations,
+		);
+		vi.mocked(jobRoleDao.updateJobRole).mockResolvedValueOnce(
+			{} as JobRoleWithRelations,
+		);
+		vi.mocked(jobRoleMapper.toDetailedResponse).mockReturnValueOnce({
+			id: 1,
+			roleName: "Updated",
+			location: "Dublin",
+			capability: { capabilityId: 1, capabilityName: "Engineering" },
+			band: { bandId: 1, bandName: "Band 1" },
+			closingDate: "2026-09-01",
+			status: JobRoleStatusDto.Open,
+			description: "Description",
+			responsibilities: "Responsibilities",
+			sharepointUrl: "https://example.com",
+			numberOfOpenPositions: 1,
+		});
+
+		await service.updateJobRole(1, { closingDate: "2026-09-01" });
+
+		expect(jobRoleDao.updateJobRole).toHaveBeenCalledWith(1, {
+			closingDate: new Date("2026-09-01"),
+		});
 	});
 });
