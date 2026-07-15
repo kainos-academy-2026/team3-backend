@@ -1,11 +1,8 @@
 import type { Request, Response } from "express";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { JobRoleController } from "../../src/controllers/jobRoleController.js";
-import {
-	type JobRoleMetadataResponseDto,
-	type JobRoleResponseDto,
-	JobRoleStatusDto,
-} from "../../src/dtos/jobRoleDto.js";
+import type { JobRoleMetadataResponseDto } from "../../src/dtos/jobRoleMetadataDto.js";
+import { type JobRoleResponseDto, JobRoleStatusDto } from "../../src/dtos/jobRoleDto.js";
 import { InvalidJobRoleReferenceError } from "../../src/errors/InvalidJobRoleReferenceError.js";
 import type { JobRoleService } from "../../src/services/jobRoleService.js";
 

@@ -1,11 +1,13 @@
+import type { BandDao } from "../daos/bandDao.js";
+import type { CapabilityDao } from "../daos/capabilityDao.js";
 import type { JobRoleDao } from "../daos/jobRoleDao.js";
 import type {
-	CreateJobRoleRequestDto,
 	JobRoleApplicationResponseDto,
 	JobRoleDetailedResponseDto,
-	JobRoleMetadataResponseDto,
 	JobRoleResponseDto,
 } from "../dtos/jobRoleDto.js";
+import type { CreateJobRoleRequestDto } from "../dtos/createJobRoleDto.js";
+import type { JobRoleMetadataResponseDto } from "../dtos/jobRoleMetadataDto.js";
 import { InvalidJobRoleReferenceError } from "../errors/InvalidJobRoleReferenceError.js";
 import type { JobRoleMapper } from "../mappers/jobRoleMapper.js";
 import type { S3Service } from "./s3Service.js";
@@ -13,6 +15,8 @@ import type { S3Service } from "./s3Service.js";
 export class JobRoleService {
 	constructor(
 		private readonly jobRoleDao: JobRoleDao,
+		private readonly capabilityDao: CapabilityDao,
+		private readonly bandDao: BandDao,
 		private readonly jobRoleMapper: JobRoleMapper,
 		private readonly s3Service: S3Service,
 	) {}
@@ -24,8 +28,8 @@ export class JobRoleService {
 
 	async getJobRoleMetadata(): Promise<JobRoleMetadataResponseDto> {
 		const [capabilities, bands] = await Promise.all([
-			this.jobRoleDao.findAllCapabilities(),
-			this.jobRoleDao.findAllBands(),
+			this.capabilityDao.findAllCapabilities(),
+			this.bandDao.findAllBands(),
 		]);
 
 		return {
@@ -53,14 +57,16 @@ export class JobRoleService {
 	async createJobRole(
 		data: CreateJobRoleRequestDto,
 	): Promise<JobRoleDetailedResponseDto> {
-		const capability = await this.jobRoleDao.findCapabilityById(data.capabilityId);
+		const capability = await this.capabilityDao.findCapabilityById(
+			data.capabilityId,
+		);
 		if (!capability) {
 			throw new InvalidJobRoleReferenceError(
 				`Capability with ID ${data.capabilityId} does not exist`,
 			);
 		}
 
-		const band = await this.jobRoleDao.findBandById(data.bandId);
+		const band = await this.bandDao.findBandById(data.bandId);
 		if (!band) {
 			throw new InvalidJobRoleReferenceError(
 				`Band with ID ${data.bandId} does not exist`,
