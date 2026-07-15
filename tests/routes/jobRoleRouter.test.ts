@@ -4,7 +4,9 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
 	mockFindAllJobRoles: vi.fn(),
+	mockGetJobRoleMetadata: vi.fn(),
 	mockFindJobRoleById: vi.fn(),
+	mockCreateJobRole: vi.fn(),
 	mockApplyForJobRole: vi.fn(),
 	mockVerifyToken: vi.fn(),
 }));
@@ -29,7 +31,9 @@ vi.mock("../../src/mappers/jobRoleMapper.js", () => ({
 vi.mock("../../src/services/jobRoleService.js", () => ({
 	JobRoleService: class JobRoleService {
 		findAllJobRoles = mocks.mockFindAllJobRoles;
+		getJobRoleMetadata = mocks.mockGetJobRoleMetadata;
 		findJobRoleById = mocks.mockFindJobRoleById;
+		createJobRole = mocks.mockCreateJobRole;
 		applyForJobRole = mocks.mockApplyForJobRole;
 	},
 }));
@@ -272,5 +276,158 @@ describe("POST /api/job-roles/:id/apply", () => {
 			"cv.pdf",
 			"application/pdf",
 		);
+	});
+});
+
+describe("GET /api/job-roles/metadata", () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+	});
+
+	it("should return 401 when authorization header is missing", async () => {
+		const response = await request(app).get("/api/job-roles/metadata");
+
+		expect(response.status).toBe(401);
+		expect(response.body).toEqual({
+			error: "Missing or invalid authorization header",
+		});
+	});
+
+	it("should return 403 for authenticated non-admin user", async () => {
+		mocks.mockVerifyToken.mockResolvedValueOnce({
+			userId: 7,
+			email: "user@example.com",
+			role: "USER",
+		});
+
+		const response = await request(app)
+			.get("/api/job-roles/metadata")
+			.set("Authorization", "Bearer valid-token");
+
+		expect(response.status).toBe(403);
+		expect(response.body).toEqual({ error: "Forbidden" });
+		expect(mocks.mockGetJobRoleMetadata).not.toHaveBeenCalled();
+	});
+
+	it("should return 200 for authenticated admin user", async () => {
+		mocks.mockVerifyToken.mockResolvedValueOnce({
+			userId: 1,
+			email: "admin@example.com",
+			role: "ADMIN",
+		});
+		mocks.mockGetJobRoleMetadata.mockResolvedValueOnce({
+			capabilities: [{ capabilityId: 1, capabilityName: "Engineering" }],
+			bands: [{ bandId: 1, bandName: "Band 1" }],
+		});
+
+		const response = await request(app)
+			.get("/api/job-roles/metadata")
+			.set("Authorization", "Bearer valid-token");
+
+		expect(response.status).toBe(200);
+		expect(response.body).toEqual({
+			capabilities: [{ capabilityId: 1, capabilityName: "Engineering" }],
+			bands: [{ bandId: 1, bandName: "Band 1" }],
+		});
+	});
+});
+
+describe("POST /api/job-roles", () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+	});
+
+	const validPayload = {
+		roleName: "Senior Backend Engineer",
+		location: "Dublin",
+		capabilityId: 1,
+		bandId: 2,
+		closingDate: "2026-08-31",
+		description: "Own backend services and integrations.",
+		responsibilities: "Build APIs, review code, support delivery.",
+		sharepointUrl: "https://example.sharepoint.com/job-role",
+		numberOfOpenPositions: 2,
+	};
+
+	it("should return 401 when authorization header is missing", async () => {
+		const response = await request(app)
+			.post("/api/job-roles")
+			.send(validPayload);
+
+		expect(response.status).toBe(401);
+		expect(response.body).toEqual({
+			error: "Missing or invalid authorization header",
+		});
+		expect(mocks.mockCreateJobRole).not.toHaveBeenCalled();
+	});
+
+	it("should return 403 for authenticated non-admin user", async () => {
+		mocks.mockVerifyToken.mockResolvedValueOnce({
+			userId: 7,
+			email: "user@example.com",
+			role: "USER",
+		});
+
+		const response = await request(app)
+			.post("/api/job-roles")
+			.set("Authorization", "Bearer valid-token")
+			.send(validPayload);
+
+		expect(response.status).toBe(403);
+		expect(response.body).toEqual({ error: "Forbidden" });
+		expect(mocks.mockCreateJobRole).not.toHaveBeenCalled();
+	});
+
+	it("should return 400 when body validation fails", async () => {
+		mocks.mockVerifyToken.mockResolvedValueOnce({
+			userId: 1,
+			email: "admin@example.com",
+			role: "ADMIN",
+		});
+
+		const response = await request(app)
+			.post("/api/job-roles")
+			.set("Authorization", "Bearer valid-token")
+			.send({ ...validPayload, roleName: "" });
+
+		expect(response.status).toBe(400);
+		expect(response.body).toEqual({
+			errors: [{ field: "roleName", message: "Role name is required" }],
+		});
+		expect(mocks.mockCreateJobRole).not.toHaveBeenCalled();
+	});
+
+	it("should return 201 for authenticated admin with valid payload", async () => {
+		mocks.mockVerifyToken.mockResolvedValueOnce({
+			userId: 1,
+			email: "admin@example.com",
+			role: "ADMIN",
+		});
+		mocks.mockCreateJobRole.mockResolvedValueOnce({
+			id: 10,
+			...validPayload,
+			capability: {
+				capabilityId: 1,
+				capabilityName: "Engineering",
+			},
+			band: {
+				bandId: 2,
+				bandName: "Band 2",
+			},
+			status: "Open",
+		});
+
+		const response = await request(app)
+			.post("/api/job-roles")
+			.set("Authorization", "Bearer valid-token")
+			.send(validPayload);
+
+		expect(response.status).toBe(201);
+		expect(response.body).toMatchObject({
+			id: 10,
+			roleName: "Senior Backend Engineer",
+			status: "Open",
+		});
+		expect(mocks.mockCreateJobRole).toHaveBeenCalledWith(validPayload);
 	});
 });

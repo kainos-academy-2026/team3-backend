@@ -4,6 +4,11 @@ import type { JobRoleWithRelations } from "../../src/daos/jobRoleDao.js";
 const mocks = vi.hoisted(() => ({
 	findMany: vi.fn(),
 	findUnique: vi.fn(),
+	capabilityFindMany: vi.fn(),
+	bandFindMany: vi.fn(),
+	capabilityFindUnique: vi.fn(),
+	bandFindUnique: vi.fn(),
+	jobRoleCreate: vi.fn(),
 	create: vi.fn(),
 }));
 
@@ -12,6 +17,15 @@ vi.mock("../../src/prismaClient.js", () => ({
 		jobRole: {
 			findMany: mocks.findMany,
 			findUnique: mocks.findUnique,
+			create: mocks.jobRoleCreate,
+		},
+		capability: {
+			findMany: mocks.capabilityFindMany,
+			findUnique: mocks.capabilityFindUnique,
+		},
+		band: {
+			findMany: mocks.bandFindMany,
+			findUnique: mocks.bandFindUnique,
 		},
 		application: {
 			create: mocks.create,
@@ -20,7 +34,10 @@ vi.mock("../../src/prismaClient.js", () => ({
 }));
 
 import { JobRoleDao } from "../../src/daos/jobRoleDao.js";
-import { JobRoleApplicationStatusDto } from "../../src/dtos/jobRoleDto.js";
+import {
+	JobRoleApplicationStatusDto,
+	JobRoleStatusDto,
+} from "../../src/dtos/jobRoleDto.js";
 
 describe("JobRoleDao", () => {
 	beforeEach(() => {
@@ -57,6 +74,38 @@ describe("JobRoleDao", () => {
 		expect(result).toEqual(dbRows);
 	});
 
+	it("should return all capabilities ordered by name", async () => {
+		mocks.capabilityFindMany.mockResolvedValueOnce([
+			{ capabilityId: 1, capabilityName: "Engineering" },
+		]);
+
+		const dao = new JobRoleDao();
+		const result = await dao.findAllCapabilities();
+
+		expect(mocks.capabilityFindMany).toHaveBeenCalledWith({
+			orderBy: {
+				capabilityName: "asc",
+			},
+		});
+		expect(result).toEqual([{ capabilityId: 1, capabilityName: "Engineering" }]);
+	});
+
+	it("should return all bands ordered by name", async () => {
+		mocks.bandFindMany.mockResolvedValueOnce([
+			{ bandId: 1, bandName: "Band 1" },
+		]);
+
+		const dao = new JobRoleDao();
+		const result = await dao.findAllBands();
+
+		expect(mocks.bandFindMany).toHaveBeenCalledWith({
+			orderBy: {
+				bandName: "asc",
+			},
+		});
+		expect(result).toEqual([{ bandId: 1, bandName: "Band 1" }]);
+	});
+
 	it("should return one job role by id with relations", async () => {
 		const dbRow = {
 			id: 1,
@@ -87,6 +136,89 @@ describe("JobRoleDao", () => {
 			},
 		});
 		expect(result).toEqual(dbRow);
+	});
+
+	it("should find capability by id", async () => {
+		mocks.capabilityFindUnique.mockResolvedValueOnce({
+			capabilityId: 7,
+			capabilityName: "Data",
+		});
+
+		const dao = new JobRoleDao();
+		const result = await dao.findCapabilityById(7);
+
+		expect(mocks.capabilityFindUnique).toHaveBeenCalledWith({
+			where: { capabilityId: 7 },
+		});
+		expect(result).toEqual({
+			capabilityId: 7,
+			capabilityName: "Data",
+		});
+	});
+
+	it("should find band by id", async () => {
+		mocks.bandFindUnique.mockResolvedValueOnce({
+			bandId: 4,
+			bandName: "Band 4",
+		});
+
+		const dao = new JobRoleDao();
+		const result = await dao.findBandById(4);
+
+		expect(mocks.bandFindUnique).toHaveBeenCalledWith({
+			where: { bandId: 4 },
+		});
+		expect(result).toEqual({
+			bandId: 4,
+			bandName: "Band 4",
+		});
+	});
+
+	it("should create a job role with open status and relations included", async () => {
+		const createdJobRole = {
+			id: 2,
+			roleName: "Senior Backend Engineer",
+			location: "Dublin",
+			capabilityId: 1,
+			bandId: 2,
+			closingDate: new Date("2026-08-31"),
+			status: JobRoleStatusDto.Open,
+			description: "Own backend services and integrations.",
+			responsibilities: "Build APIs, review code, support delivery.",
+			sharepointUrl: "https://example.sharepoint.com/job-role",
+			numberOfOpenPositions: 2,
+			capability: { capabilityId: 1, capabilityName: "Engineering" },
+			band: { bandId: 2, bandName: "Band 2" },
+		} as unknown as JobRoleWithRelations;
+
+		mocks.jobRoleCreate.mockResolvedValueOnce(createdJobRole);
+
+		const dao = new JobRoleDao();
+		const input = {
+			roleName: "Senior Backend Engineer",
+			location: "Dublin",
+			capabilityId: 1,
+			bandId: 2,
+			closingDate: new Date("2026-08-31"),
+			description: "Own backend services and integrations.",
+			responsibilities: "Build APIs, review code, support delivery.",
+			sharepointUrl: "https://example.sharepoint.com/job-role",
+			numberOfOpenPositions: 2,
+		};
+
+		const result = await dao.createJobRole(input);
+
+		expect(mocks.jobRoleCreate).toHaveBeenCalledWith({
+			data: {
+				...input,
+				status: JobRoleStatusDto.Open,
+			},
+			include: {
+				capability: true,
+				band: true,
+			},
+		});
+		expect(result).toEqual(createdJobRole);
 	});
 
 	it("should create an application with in progress status", async () => {
