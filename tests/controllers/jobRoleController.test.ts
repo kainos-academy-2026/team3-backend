@@ -9,6 +9,7 @@ import type { JobRoleService } from "../../src/services/jobRoleService.js";
 
 const mockService = {
 	findAllJobRoles: vi.fn(),
+	generateJobRolesCsvReport: vi.fn(),
 	findJobRoleById: vi.fn(),
 	applyForJobRole: vi.fn(),
 };
@@ -17,7 +18,10 @@ describe("JobRoleController", () => {
 	let controller: JobRoleController;
 	let jobRoleService: Pick<
 		JobRoleService,
-		"findAllJobRoles" | "findJobRoleById" | "applyForJobRole"
+		| "findAllJobRoles"
+		| "generateJobRolesCsvReport"
+		| "findJobRoleById"
+		| "applyForJobRole"
 	>;
 	let req: Request;
 	let res: Response;
@@ -27,6 +31,7 @@ describe("JobRoleController", () => {
 
 		jobRoleService = {
 			findAllJobRoles: mockService.findAllJobRoles,
+			generateJobRolesCsvReport: mockService.generateJobRolesCsvReport,
 			findJobRoleById: mockService.findJobRoleById,
 			applyForJobRole: mockService.applyForJobRole,
 		};
@@ -37,6 +42,8 @@ describe("JobRoleController", () => {
 		res = {
 			status: vi.fn().mockReturnThis(),
 			json: vi.fn(),
+			setHeader: vi.fn(),
+			send: vi.fn(),
 		} as unknown as Response;
 	});
 
@@ -74,6 +81,37 @@ describe("JobRoleController", () => {
 		);
 
 		await controller.getAllJobRoles(req, res);
+
+		expect(res.status).toHaveBeenCalledWith(500);
+		expect(res.json).toHaveBeenCalledWith({ error: "Internal server error" });
+	});
+
+	it("should return csv report with file download headers", async () => {
+		vi.mocked(jobRoleService.generateJobRolesCsvReport).mockResolvedValueOnce(
+			"id,roleName\n1,Backend Engineer",
+		);
+
+		await controller.downloadJobRolesReport(req, res);
+
+		expect(jobRoleService.generateJobRolesCsvReport).toHaveBeenCalledTimes(1);
+		expect(res.setHeader).toHaveBeenCalledWith(
+			"Content-Type",
+			"text/csv; charset=utf-8",
+		);
+		expect(res.setHeader).toHaveBeenCalledWith(
+			"Content-Disposition",
+			expect.stringContaining("attachment; filename=\"job-roles-report-"),
+		);
+		expect(res.status).toHaveBeenCalledWith(200);
+		expect(res.send).toHaveBeenCalledWith("id,roleName\n1,Backend Engineer");
+	});
+
+	it("should return 500 when csv report generation throws", async () => {
+		vi.mocked(jobRoleService.generateJobRolesCsvReport).mockRejectedValueOnce(
+			new Error("db down"),
+		);
+
+		await controller.downloadJobRolesReport(req, res);
 
 		expect(res.status).toHaveBeenCalledWith(500);
 		expect(res.json).toHaveBeenCalledWith({ error: "Internal server error" });

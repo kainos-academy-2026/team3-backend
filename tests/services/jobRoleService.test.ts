@@ -120,6 +120,43 @@ describe("JobRoleService", () => {
 		expect(jobRoleMapper.toResponse).not.toHaveBeenCalled();
 	});
 
+	it("should generate a csv report with all job role information", async () => {
+		const daoJobRoles = [
+			{
+				id: 1,
+				roleName: 'Backend "Engineer"',
+				location: "Dublin, Ireland",
+				capabilityId: 10,
+				bandId: 3,
+				closingDate: new Date("2026-08-31"),
+				status: "Open",
+				description: "Build backend services",
+				responsibilities: "Build APIs",
+				sharepointUrl: "https://example.com/backend",
+				numberOfOpenPositions: 2,
+				capability: {
+					capabilityId: 10,
+					capabilityName: "Engineering",
+				},
+				band: {
+					bandId: 3,
+					bandName: "Band 3",
+				},
+			},
+		] as JobRoleWithRelations[];
+
+		vi.mocked(jobRoleDao.findAllJobRoles).mockResolvedValueOnce(daoJobRoles);
+
+		const report = await service.generateJobRolesCsvReport();
+
+		expect(report).toContain(
+			"id,roleName,location,capability,band,closingDate,status,description,responsibilities,sharepointUrl,numberOfOpenPositions",
+		);
+		expect(report).toContain(
+			'"1","Backend ""Engineer""","Dublin, Ireland","Engineering","Band 3","2026-08-31","Open","Build backend services","Build APIs","https://example.com/backend","2"',
+		);
+	});
+
 	it("should return mapped detailed job role from dao data", async () => {
 		const daoJobRole = {
 			id: 1,

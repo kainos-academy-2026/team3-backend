@@ -13,9 +13,9 @@ export class AuthController {
 	async login(req: Request, res: Response): Promise<void> {
 		try {
 			const dto = req.body as LoginRequestDto;
-			const token = await this.authService.login(dto);
+			const { token, role } = await this.authService.login(dto);
 
-			res.status(200).json({ token, message: "Login successful" });
+			res.status(200).json({ token, role, message: "Login successful" });
 		} catch (error) {
 			if (error instanceof InvalidCredentialsError) {
 				res.status(401).json({ error: "Invalid credentials" });

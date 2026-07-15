@@ -3,7 +3,7 @@ import { JobRoleController } from "../controllers/jobRoleController.js";
 import { JobRoleDao } from "../daos/jobRoleDao.js";
 import { JobRoleIdParamSchema } from "../dtos/jobRoleDto.js";
 import { JobRoleMapper } from "../mappers/jobRoleMapper.js";
-import { authenticate } from "../middleware/auth.js";
+import { authenticate, requireAdmin } from "../middleware/auth.js";
 import { validateParams } from "../middleware/validate.js";
 import { JobRoleService } from "../services/jobRoleService.js";
 import { S3Service } from "../services/s3Service.js";
@@ -17,6 +17,12 @@ const jobRoleController = new JobRoleController(jobRoleService);
 
 router.get("/", jobRoleController.getAllJobRoles.bind(jobRoleController));
 router.get(
+	"/report",
+	authenticate,
+	requireAdmin,
+	jobRoleController.downloadJobRolesReport.bind(jobRoleController),
+);
+router.get(
 	"/:id",
 	authenticate,
 	validateParams(JobRoleIdParamSchema),
@@ -28,6 +34,5 @@ router.post(
 	validateParams(JobRoleIdParamSchema),
 	jobRoleController.applyForJobRole.bind(jobRoleController),
 );
-
 
 export default router;
