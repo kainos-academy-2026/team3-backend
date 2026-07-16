@@ -3,9 +3,9 @@ import type { CapabilityDao } from "../daos/capabilityDao.js";
 import type { JobRoleDao } from "../daos/jobRoleDao.js";
 import type { CreateJobRoleRequestDto } from "../dtos/createJobRoleDto.js";
 import type {
-	JobRolePaginationQueryDto,
 	JobRoleApplicationResponseDto,
 	JobRoleDetailedResponseDto,
+	JobRolePaginationQueryDto,
 	PaginatedJobRoleResponseDto,
 } from "../dtos/jobRoleDto.js";
 import type { JobRoleMetadataResponseDto } from "../dtos/jobRoleMetadataDto.js";
@@ -42,7 +42,9 @@ export class JobRoleService {
 			this.jobRoleDao.countJobRoles(),
 		]);
 
-		const data = jobRoles.map((jobRole) => this.jobRoleMapper.toResponse(jobRole));
+		const data = jobRoles.map((jobRole) =>
+			this.jobRoleMapper.toResponse(jobRole),
+		);
 		const totalPages = Math.ceil(totalItems / query.limit);
 		const hasPrevious = totalPages > 0 && query.page > 1;
 		const hasNext = query.page < totalPages;
@@ -58,8 +60,7 @@ export class JobRoleService {
 				hasPrevious,
 			},
 			links: {
-				first:
-					totalPages > 0 ? this.buildPaginationLink(query.limit, 1) : null,
+				first: totalPages > 0 ? this.buildPaginationLink(query.limit, 1) : null,
 				next: hasNext
 					? this.buildPaginationLink(query.limit, query.page + 1)
 					: null,

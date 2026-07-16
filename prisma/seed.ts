@@ -184,7 +184,8 @@ async function main(): Promise<void> {
 				bandId: bandAssociate.bandId,
 				closingDate: new Date("2026-09-06"),
 				status: JobRoleStatusDto.Open,
-				description: "Ensures product quality through automated and manual testing.",
+				description:
+					"Ensures product quality through automated and manual testing.",
 				responsibilities:
 					"Create test plans, automate critical paths, and report release quality.",
 				sharepointUrl: "https://example.com/qa-engineer",
@@ -210,7 +211,8 @@ async function main(): Promise<void> {
 				bandId: bandSenior.bandId,
 				closingDate: new Date("2026-09-08"),
 				status: JobRoleStatusDto.Open,
-				description: "Improves application and infrastructure security posture.",
+				description:
+					"Improves application and infrastructure security posture.",
 				responsibilities:
 					"Run threat modeling, implement controls, and support vulnerability remediation.",
 				sharepointUrl: "https://example.com/security-engineer",
@@ -249,7 +251,8 @@ async function main(): Promise<void> {
 				bandId: bandSenior.bandId,
 				closingDate: new Date("2026-09-11"),
 				status: JobRoleStatusDto.Open,
-				description: "Builds integrations between internal and external systems.",
+				description:
+					"Builds integrations between internal and external systems.",
 				responsibilities:
 					"Develop connectors, manage data contracts, and monitor integration health.",
 				sharepointUrl: "https://example.com/integration-engineer",
@@ -262,7 +265,8 @@ async function main(): Promise<void> {
 				bandId: bandAssociate.bandId,
 				closingDate: new Date("2026-09-12"),
 				status: JobRoleStatusDto.Open,
-				description: "Translates business goals into delivery-ready requirements.",
+				description:
+					"Translates business goals into delivery-ready requirements.",
 				responsibilities:
 					"Gather requirements, map workflows, and support sprint planning.",
 				sharepointUrl: "https://example.com/business-analyst",
@@ -392,7 +396,8 @@ async function main(): Promise<void> {
 				bandId: bandAssociate.bandId,
 				closingDate: new Date("2026-09-22"),
 				status: JobRoleStatusDto.Open,
-				description: "Provides actionable insights from product and operational data.",
+				description:
+					"Provides actionable insights from product and operational data.",
 				responsibilities:
 					"Create dashboards, analyze trends, and support decision making.",
 				sharepointUrl: "https://example.com/data-analyst",
@@ -457,7 +462,8 @@ async function main(): Promise<void> {
 				bandId: bandSenior.bandId,
 				closingDate: new Date("2026-09-27"),
 				status: JobRoleStatusDto.Open,
-				description: "Ensures database reliability, performance, and backup readiness.",
+				description:
+					"Ensures database reliability, performance, and backup readiness.",
 				responsibilities:
 					"Tune queries, manage backups, and support schema changes.",
 				sharepointUrl: "https://example.com/database-administrator",

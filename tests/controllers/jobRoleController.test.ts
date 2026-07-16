@@ -2,8 +2,8 @@ import type { Request, Response } from "express";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { JobRoleController } from "../../src/controllers/jobRoleController.js";
 import {
-	type PaginatedJobRoleResponseDto,
 	JobRoleStatusDto,
+	type PaginatedJobRoleResponseDto,
 } from "../../src/dtos/jobRoleDto.js";
 import type { JobRoleMetadataResponseDto } from "../../src/dtos/jobRoleMetadataDto.js";
 import type { UpdateJobRoleRequestDto } from "../../src/dtos/updateJobRoleDto.js";
