@@ -86,7 +86,6 @@ router.patch(
 );
 router.get(
 	"/:id",
-	authenticate,
 	validateParams(JobRoleIdParamSchema),
 	jobRoleController.getJobRoleById.bind(jobRoleController),
 );
