@@ -4,6 +4,7 @@ import type { JobRoleWithRelations } from "../../src/daos/jobRoleDao.js";
 const mocks = vi.hoisted(() => ({
 	findMany: vi.fn(),
 	findUnique: vi.fn(),
+	jobRoleCreate: vi.fn(),
 	create: vi.fn(),
 }));
 
@@ -12,6 +13,7 @@ vi.mock("../../src/prismaClient.js", () => ({
 		jobRole: {
 			findMany: mocks.findMany,
 			findUnique: mocks.findUnique,
+			create: mocks.jobRoleCreate,
 		},
 		application: {
 			create: mocks.create,
@@ -20,7 +22,10 @@ vi.mock("../../src/prismaClient.js", () => ({
 }));
 
 import { JobRoleDao } from "../../src/daos/jobRoleDao.js";
-import { JobRoleApplicationStatusDto } from "../../src/dtos/jobRoleDto.js";
+import {
+	JobRoleApplicationStatusDto,
+	JobRoleStatusDto,
+} from "../../src/dtos/jobRoleDto.js";
 
 describe("JobRoleDao", () => {
 	beforeEach(() => {
@@ -87,6 +92,53 @@ describe("JobRoleDao", () => {
 			},
 		});
 		expect(result).toEqual(dbRow);
+	});
+
+	it("should create a job role with open status and relations included", async () => {
+		const createdJobRole = {
+			id: 2,
+			roleName: "Senior Backend Engineer",
+			location: "Dublin",
+			capabilityId: 1,
+			bandId: 2,
+			closingDate: new Date("2026-08-31"),
+			status: JobRoleStatusDto.Open,
+			description: "Own backend services and integrations.",
+			responsibilities: "Build APIs, review code, support delivery.",
+			sharepointUrl: "https://example.sharepoint.com/job-role",
+			numberOfOpenPositions: 2,
+			capability: { capabilityId: 1, capabilityName: "Engineering" },
+			band: { bandId: 2, bandName: "Band 2" },
+		} as unknown as JobRoleWithRelations;
+
+		mocks.jobRoleCreate.mockResolvedValueOnce(createdJobRole);
+
+		const dao = new JobRoleDao();
+		const input = {
+			roleName: "Senior Backend Engineer",
+			location: "Dublin",
+			capabilityId: 1,
+			bandId: 2,
+			closingDate: new Date("2026-08-31"),
+			description: "Own backend services and integrations.",
+			responsibilities: "Build APIs, review code, support delivery.",
+			sharepointUrl: "https://example.sharepoint.com/job-role",
+			numberOfOpenPositions: 2,
+		};
+
+		const result = await dao.createJobRole(input);
+
+		expect(mocks.jobRoleCreate).toHaveBeenCalledWith({
+			data: {
+				...input,
+				status: JobRoleStatusDto.Open,
+			},
+			include: {
+				capability: true,
+				band: true,
+			},
+		});
+		expect(result).toEqual(createdJobRole);
 	});
 
 	it("should create an application with in progress status", async () => {

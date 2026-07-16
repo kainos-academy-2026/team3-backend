@@ -282,4 +282,6 @@ npm run prisma:seed
 ### Prisma client initialization error
  
 Check that `.env` exists and `DATABASE_URL` is set.
+
+
  

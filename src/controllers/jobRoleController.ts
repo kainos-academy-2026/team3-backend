@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import { InvalidJobRoleReferenceError } from "../errors/InvalidJobRoleReferenceError.js";
 import type { JobRoleService } from "../services/jobRoleService.js";
 
 export class JobRoleController {
@@ -9,6 +10,16 @@ export class JobRoleController {
 			const jobRoles = await this.jobRoleService.findAllJobRoles();
 
 			res.status(200).json(jobRoles);
+		} catch (error) {
+			console.error(error);
+			res.status(500).json({ error: "Internal server error" });
+		}
+	}
+
+	async getJobRoleMetadata(_req: Request, res: Response): Promise<void> {
+		try {
+			const metadata = await this.jobRoleService.getJobRoleMetadata();
+			res.status(200).json(metadata);
 		} catch (error) {
 			console.error(error);
 			res.status(500).json({ error: "Internal server error" });
@@ -75,6 +86,22 @@ export class JobRoleController {
 			res.status(200).json(presignedUrlData);
 		} catch (error) {
 			console.error(error);
+			res.status(500).json({ error: "Internal server error" });
+		}
+	}
+
+	async createJobRole(req: Request, res: Response): Promise<void> {
+		try {
+			const createdJobRole = await this.jobRoleService.createJobRole(req.body);
+			res.status(201).json(createdJobRole);
+		} catch (error) {
+			console.error(error);
+
+			if (error instanceof InvalidJobRoleReferenceError) {
+				res.status(400).json({ error: error.message });
+				return;
+			}
+
 			res.status(500).json({ error: "Internal server error" });
 		}
 	}

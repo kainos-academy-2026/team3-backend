@@ -5,12 +5,16 @@ import {
 	type JobRoleResponseDto,
 	JobRoleStatusDto,
 } from "../../src/dtos/jobRoleDto.js";
+import type { JobRoleMetadataResponseDto } from "../../src/dtos/jobRoleMetadataDto.js";
+import { InvalidJobRoleReferenceError } from "../../src/errors/InvalidJobRoleReferenceError.js";
 import type { JobRoleService } from "../../src/services/jobRoleService.js";
 
 const mockService = {
 	findAllJobRoles: vi.fn(),
+	getJobRoleMetadata: vi.fn(),
 	generateJobRolesCsvReport: vi.fn(),
 	findJobRoleById: vi.fn(),
+	createJobRole: vi.fn(),
 	applyForJobRole: vi.fn(),
 };
 
@@ -19,8 +23,10 @@ describe("JobRoleController", () => {
 	let jobRoleService: Pick<
 		JobRoleService,
 		| "findAllJobRoles"
-		| "generateJobRolesCsvReport"
+		| "getJobRoleMetadata"
 		| "findJobRoleById"
+		| "createJobRole"
+		| "generateJobRolesCsvReport"
 		| "applyForJobRole"
 	>;
 	let req: Request;
@@ -31,8 +37,10 @@ describe("JobRoleController", () => {
 
 		jobRoleService = {
 			findAllJobRoles: mockService.findAllJobRoles,
+			getJobRoleMetadata: mockService.getJobRoleMetadata,
 			generateJobRolesCsvReport: mockService.generateJobRolesCsvReport,
 			findJobRoleById: mockService.findJobRoleById,
+			createJobRole: mockService.createJobRole,
 			applyForJobRole: mockService.applyForJobRole,
 		};
 
@@ -86,6 +94,34 @@ describe("JobRoleController", () => {
 		expect(res.json).toHaveBeenCalledWith({ error: "Internal server error" });
 	});
 
+	it("should return 200 with metadata", async () => {
+		const metadata: JobRoleMetadataResponseDto = {
+			capabilities: [{ capabilityId: 1, capabilityName: "Engineering" }],
+			bands: [{ bandId: 2, bandName: "Band 2" }],
+		};
+
+		vi.mocked(jobRoleService.getJobRoleMetadata).mockResolvedValueOnce(
+			metadata,
+		);
+
+		await controller.getJobRoleMetadata(req, res);
+
+		expect(jobRoleService.getJobRoleMetadata).toHaveBeenCalledTimes(1);
+		expect(res.status).toHaveBeenCalledWith(200);
+		expect(res.json).toHaveBeenCalledWith(metadata);
+	});
+
+	it("should return 500 when getJobRoleMetadata throws", async () => {
+		vi.mocked(jobRoleService.getJobRoleMetadata).mockRejectedValueOnce(
+			new Error("db down"),
+		);
+
+		await controller.getJobRoleMetadata(req, res);
+
+		expect(res.status).toHaveBeenCalledWith(500);
+		expect(res.json).toHaveBeenCalledWith({ error: "Internal server error" });
+	});
+
 	it("should return csv report with file download headers", async () => {
 		vi.mocked(jobRoleService.generateJobRolesCsvReport).mockResolvedValueOnce(
 			"id,roleName\n1,Backend Engineer",
@@ -100,7 +136,7 @@ describe("JobRoleController", () => {
 		);
 		expect(res.setHeader).toHaveBeenCalledWith(
 			"Content-Disposition",
-			expect.stringContaining("attachment; filename=\"job-roles-report-"),
+			expect.stringContaining('attachment; filename="job-roles-report-'),
 		);
 		expect(res.status).toHaveBeenCalledWith(200);
 		expect(res.send).toHaveBeenCalledWith("id,roleName\n1,Backend Engineer");
@@ -261,6 +297,95 @@ describe("JobRoleController", () => {
 		);
 
 		await controller.applyForJobRole(req, res);
+
+		expect(res.status).toHaveBeenCalledWith(500);
+		expect(res.json).toHaveBeenCalledWith({ error: "Internal server error" });
+	});
+
+	it("should return 201 when createJobRole succeeds", async () => {
+		const payload = {
+			roleName: "Senior Backend Engineer",
+			location: "Dublin",
+			capabilityId: 1,
+			bandId: 2,
+			closingDate: "2026-08-31",
+			description: "Own backend services and integrations.",
+			responsibilities: "Build APIs, review code, support delivery.",
+			sharepointUrl: "https://example.sharepoint.com/job-role",
+			numberOfOpenPositions: 2,
+		};
+
+		const createdJobRole = {
+			id: 10,
+			...payload,
+			capability: {
+				capabilityId: 1,
+				capabilityName: "Engineering",
+			},
+			band: {
+				bandId: 2,
+				bandName: "Band 2",
+			},
+			status: JobRoleStatusDto.Open,
+		};
+
+		req = { body: payload } as Request;
+		vi.mocked(jobRoleService.createJobRole).mockResolvedValueOnce(
+			createdJobRole,
+		);
+
+		await controller.createJobRole(req, res);
+
+		expect(jobRoleService.createJobRole).toHaveBeenCalledWith(payload);
+		expect(res.status).toHaveBeenCalledWith(201);
+		expect(res.json).toHaveBeenCalledWith(createdJobRole);
+	});
+
+	it("should return 400 when createJobRole has invalid references", async () => {
+		req = {
+			body: {
+				roleName: "Senior Backend Engineer",
+				location: "Dublin",
+				capabilityId: 999,
+				bandId: 2,
+				closingDate: "2026-08-31",
+				description: "Own backend services and integrations.",
+				responsibilities: "Build APIs, review code, support delivery.",
+				sharepointUrl: "https://example.sharepoint.com/job-role",
+				numberOfOpenPositions: 2,
+			},
+		} as Request;
+		vi.mocked(jobRoleService.createJobRole).mockRejectedValueOnce(
+			new InvalidJobRoleReferenceError("Capability with ID 999 does not exist"),
+		);
+
+		await controller.createJobRole(req, res);
+
+		expect(res.status).toHaveBeenCalledWith(400);
+		expect(res.json).toHaveBeenCalledWith({
+			error: "Capability with ID 999 does not exist",
+		});
+	});
+
+	it("should return 500 when createJobRole throws generic error", async () => {
+		req = {
+			body: {
+				roleName: "Senior Backend Engineer",
+				location: "Dublin",
+				capabilityId: 1,
+				bandId: 2,
+				closingDate: "2026-08-31",
+				description: "Own backend services and integrations.",
+				responsibilities: "Build APIs, review code, support delivery.",
+				sharepointUrl: "https://example.sharepoint.com/job-role",
+				numberOfOpenPositions: 2,
+			},
+		} as Request;
+		vi.mocked(jobRoleService.createJobRole).mockRejectedValueOnce(
+			new Error("db down"),
+		);
+
+		await controller.createJobRole(req, res);
 
 		expect(res.status).toHaveBeenCalledWith(500);
 		expect(res.json).toHaveBeenCalledWith({ error: "Internal server error" });

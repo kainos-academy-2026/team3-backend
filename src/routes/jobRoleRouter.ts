@@ -1,21 +1,46 @@
 import { Router } from "express";
 import { JobRoleController } from "../controllers/jobRoleController.js";
+import { BandDao } from "../daos/bandDao.js";
+import { CapabilityDao } from "../daos/capabilityDao.js";
 import { JobRoleDao } from "../daos/jobRoleDao.js";
+import { CreateJobRoleRequestSchema } from "../dtos/createJobRoleDto.js";
 import { JobRoleIdParamSchema } from "../dtos/jobRoleDto.js";
 import { JobRoleMapper } from "../mappers/jobRoleMapper.js";
 import { authenticate, requireAdmin } from "../middleware/auth.js";
-import { validateParams } from "../middleware/validate.js";
+import { validateBody, validateParams } from "../middleware/validate.js";
 import { JobRoleService } from "../services/jobRoleService.js";
 import { S3Service } from "../services/s3Service.js";
 
 const router = Router();
+const capabilityDao = new CapabilityDao();
+const bandDao = new BandDao();
 const jobRoleDao = new JobRoleDao();
 const jobRoleMapper = new JobRoleMapper();
 const s3Service = new S3Service();
-const jobRoleService = new JobRoleService(jobRoleDao, jobRoleMapper, s3Service);
+const jobRoleService = new JobRoleService(
+	jobRoleDao,
+	capabilityDao,
+	bandDao,
+	jobRoleMapper,
+	s3Service,
+);
 const jobRoleController = new JobRoleController(jobRoleService);
 
 router.get("/", jobRoleController.getAllJobRoles.bind(jobRoleController));
+
+router.get(
+	"/metadata",
+	authenticate,
+	requireAdmin,
+	jobRoleController.getJobRoleMetadata.bind(jobRoleController),
+);
+router.post(
+	"/",
+	authenticate,
+	requireAdmin,
+	validateBody(CreateJobRoleRequestSchema),
+	jobRoleController.createJobRole.bind(jobRoleController),
+);
 router.get(
 	"/report",
 	authenticate,

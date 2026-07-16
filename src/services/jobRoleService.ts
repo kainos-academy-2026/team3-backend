@@ -1,15 +1,22 @@
+import type { BandDao } from "../daos/bandDao.js";
+import type { CapabilityDao } from "../daos/capabilityDao.js";
 import type { JobRoleDao } from "../daos/jobRoleDao.js";
+import type { CreateJobRoleRequestDto } from "../dtos/createJobRoleDto.js";
 import type {
 	JobRoleApplicationResponseDto,
 	JobRoleDetailedResponseDto,
 	JobRoleResponseDto,
 } from "../dtos/jobRoleDto.js";
+import type { JobRoleMetadataResponseDto } from "../dtos/jobRoleMetadataDto.js";
+import { InvalidJobRoleReferenceError } from "../errors/InvalidJobRoleReferenceError.js";
 import type { JobRoleMapper } from "../mappers/jobRoleMapper.js";
 import type { S3Service } from "./s3Service.js";
 
 export class JobRoleService {
 	constructor(
 		private readonly jobRoleDao: JobRoleDao,
+		private readonly capabilityDao: CapabilityDao,
+		private readonly bandDao: BandDao,
 		private readonly jobRoleMapper: JobRoleMapper,
 		private readonly s3Service: S3Service,
 	) {}
@@ -23,6 +30,24 @@ export class JobRoleService {
 	async findAllJobRoles(): Promise<JobRoleResponseDto[]> {
 		const jobRoles = await this.jobRoleDao.findAllJobRoles();
 		return jobRoles.map((jobRole) => this.jobRoleMapper.toResponse(jobRole));
+	}
+
+	async getJobRoleMetadata(): Promise<JobRoleMetadataResponseDto> {
+		const [capabilities, bands] = await Promise.all([
+			this.capabilityDao.findAllCapabilities(),
+			this.bandDao.findAllBands(),
+		]);
+
+		return {
+			capabilities: capabilities.map((capability) => ({
+				capabilityId: capability.capabilityId,
+				capabilityName: capability.capabilityName,
+			})),
+			bands: bands.map((band) => ({
+				bandId: band.bandId,
+				bandName: band.bandName,
+			})),
+		};
 	}
 
 	async generateJobRolesCsvReport(): Promise<string> {
@@ -70,6 +95,40 @@ export class JobRoleService {
 			return null;
 		}
 		return this.jobRoleMapper.toDetailedResponse(jobRole);
+	}
+
+	async createJobRole(
+		data: CreateJobRoleRequestDto,
+	): Promise<JobRoleDetailedResponseDto> {
+		const capability = await this.capabilityDao.findCapabilityById(
+			data.capabilityId,
+		);
+		if (!capability) {
+			throw new InvalidJobRoleReferenceError(
+				`Capability with ID ${data.capabilityId} does not exist`,
+			);
+		}
+
+		const band = await this.bandDao.findBandById(data.bandId);
+		if (!band) {
+			throw new InvalidJobRoleReferenceError(
+				`Band with ID ${data.bandId} does not exist`,
+			);
+		}
+
+		const createdJobRole = await this.jobRoleDao.createJobRole({
+			roleName: data.roleName,
+			location: data.location,
+			capabilityId: data.capabilityId,
+			bandId: data.bandId,
+			closingDate: new Date(data.closingDate),
+			description: data.description,
+			responsibilities: data.responsibilities,
+			sharepointUrl: data.sharepointUrl,
+			numberOfOpenPositions: data.numberOfOpenPositions,
+		});
+
+		return this.jobRoleMapper.toDetailedResponse(createdJobRole);
 	}
 
 	async applyForJobRole(

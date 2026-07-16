@@ -74,7 +74,7 @@ describe("JwtTokenService", () => {
 			expect(result).toBeNull();
 			vi.unstubAllEnvs();
 		});
-		
+
 		it("should return null when decoded role is not a string", async () => {
 			vi.stubEnv("JWT_SECRET", "test-secret");
 			vi.mocked(jwt.verify).mockReturnValue({
