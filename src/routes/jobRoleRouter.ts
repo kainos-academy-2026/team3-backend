@@ -10,6 +10,7 @@ import {
 	JobRolePaginationQuerySchema,
 } from "../dtos/jobRoleDto.js";
 import { UpdateJobRoleRequestSchema } from "../dtos/updateJobRoleDto.js";
+import { JobRoleApplicationMapper } from "../mappers/jobRoleApplicationMapper.js";
 import { JobRoleMapper } from "../mappers/jobRoleMapper.js";
 import { authenticate, requireAdmin } from "../middleware/auth.js";
 import {
@@ -25,12 +26,14 @@ const capabilityDao = new CapabilityDao();
 const bandDao = new BandDao();
 const jobRoleDao = new JobRoleDao();
 const jobRoleMapper = new JobRoleMapper();
+const jobRoleApplicationMapper = new JobRoleApplicationMapper();
 const s3Service = new S3Service();
 const jobRoleService = new JobRoleService(
 	jobRoleDao,
 	capabilityDao,
 	bandDao,
 	jobRoleMapper,
+	jobRoleApplicationMapper,
 	s3Service,
 );
 const jobRoleController = new JobRoleController(jobRoleService);

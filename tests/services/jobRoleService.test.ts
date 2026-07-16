@@ -14,6 +14,7 @@ import {
 import type { UpdateJobRoleRequestDto } from "../../src/dtos/updateJobRoleDto.js";
 import { InvalidJobRoleReferenceError } from "../../src/errors/InvalidJobRoleReferenceError.js";
 import { JobRoleNotFoundError } from "../../src/errors/JobRoleNotFoundError.js";
+import type { JobRoleApplicationMapper } from "../../src/mappers/jobRoleApplicationMapper.js";
 import type { JobRoleMapper } from "../../src/mappers/jobRoleMapper.js";
 import { JobRoleService } from "../../src/services/jobRoleService.js";
 import type { S3Service } from "../../src/services/s3Service.js";
@@ -48,6 +49,13 @@ const mockMapper = {
 	toDetailedResponse: vi.fn(),
 };
 
+const mockJobRoleApplicationMapper = {
+	toApplicationSummary: vi.fn(),
+	toAdminApplicationsResponse: vi.fn(),
+	toHireResponse: vi.fn(),
+	toRejectResponse: vi.fn(),
+};
+
 const mockS3Service = {
 	getPresignedUploadUrl: vi.fn(),
 	getPresignedDownloadUrl: vi.fn(),
@@ -76,6 +84,13 @@ describe("JobRoleService", () => {
 	>;
 	let bandDao: Pick<BandDao, "findAllBands" | "findBandById">;
 	let jobRoleMapper: Pick<JobRoleMapper, "toResponse" | "toDetailedResponse">;
+	let jobRoleApplicationMapper: Pick<
+		JobRoleApplicationMapper,
+		| "toApplicationSummary"
+		| "toAdminApplicationsResponse"
+		| "toHireResponse"
+		| "toRejectResponse"
+	>;
 	let s3Service: Pick<
 		S3Service,
 		"getPresignedUploadUrl" | "getPresignedDownloadUrl"
@@ -114,6 +129,14 @@ describe("JobRoleService", () => {
 			toDetailedResponse: mockMapper.toDetailedResponse,
 		};
 
+		jobRoleApplicationMapper = {
+			toApplicationSummary: mockJobRoleApplicationMapper.toApplicationSummary,
+			toAdminApplicationsResponse:
+				mockJobRoleApplicationMapper.toAdminApplicationsResponse,
+			toHireResponse: mockJobRoleApplicationMapper.toHireResponse,
+			toRejectResponse: mockJobRoleApplicationMapper.toRejectResponse,
+		};
+
 		s3Service = {
 			getPresignedUploadUrl: mockS3Service.getPresignedUploadUrl,
 			getPresignedDownloadUrl: mockS3Service.getPresignedDownloadUrl,
@@ -124,6 +147,7 @@ describe("JobRoleService", () => {
 			capabilityDao as CapabilityDao,
 			bandDao as BandDao,
 			jobRoleMapper as JobRoleMapper,
+			jobRoleApplicationMapper as JobRoleApplicationMapper,
 			s3Service as S3Service,
 		);
 	});
@@ -167,6 +191,33 @@ describe("JobRoleService", () => {
 		vi.mocked(s3Service.getPresignedDownloadUrl).mockResolvedValueOnce(
 			"https://example.com/download",
 		);
+		vi.mocked(
+			jobRoleApplicationMapper.toApplicationSummary,
+		).mockReturnValueOnce({
+			applicationId: 101,
+			userId: 7,
+			username: "candidate@example.com",
+			status: JobRoleApplicationStatusDto.InProgress,
+			appliedAt: "2026-07-01T12:00:00.000Z",
+			cvDownloadUrl: "https://example.com/download",
+		});
+		vi.mocked(
+			jobRoleApplicationMapper.toAdminApplicationsResponse,
+		).mockReturnValueOnce({
+			jobRoleId: 1,
+			roleName: "Backend Engineer",
+			numberOfOpenPositions: 2,
+			applicants: [
+				{
+					applicationId: 101,
+					userId: 7,
+					username: "candidate@example.com",
+					status: JobRoleApplicationStatusDto.InProgress,
+					appliedAt: "2026-07-01T12:00:00.000Z",
+					cvDownloadUrl: "https://example.com/download",
+				},
+			],
+		});
 
 		const result = await service.getJobRoleApplicationsForAdmin(1);
 
@@ -175,6 +226,13 @@ describe("JobRoleService", () => {
 		expect(s3Service.getPresignedDownloadUrl).toHaveBeenCalledWith(
 			"job-applications/1/7/abc-cv.pdf",
 		);
+		expect(jobRoleApplicationMapper.toApplicationSummary).toHaveBeenCalledWith(
+			expect.objectContaining({ id: 101, userId: 7 }),
+			"https://example.com/download",
+		);
+		expect(
+			jobRoleApplicationMapper.toAdminApplicationsResponse,
+		).toHaveBeenCalled();
 		expect(result).toEqual({
 			jobRoleId: 1,
 			roleName: "Backend Engineer",
@@ -211,10 +269,35 @@ describe("JobRoleService", () => {
 		vi.mocked(s3Service.getPresignedDownloadUrl).mockResolvedValueOnce(
 			"https://example.com/download",
 		);
+		vi.mocked(
+			jobRoleApplicationMapper.toApplicationSummary,
+		).mockReturnValueOnce({
+			applicationId: 101,
+			userId: 7,
+			username: "candidate@example.com",
+			status: JobRoleApplicationStatusDto.Hired,
+			appliedAt: "2026-07-01T12:00:00.000Z",
+			cvDownloadUrl: "https://example.com/download",
+		});
+		vi.mocked(jobRoleApplicationMapper.toHireResponse).mockReturnValueOnce({
+			application: {
+				applicationId: 101,
+				userId: 7,
+				username: "candidate@example.com",
+				status: JobRoleApplicationStatusDto.Hired,
+				appliedAt: "2026-07-01T12:00:00.000Z",
+				cvDownloadUrl: "https://example.com/download",
+			},
+			numberOfOpenPositions: 1,
+		});
 
 		const result = await service.hireApplicant(1, 101);
 
 		expect(jobRoleDao.hireApplication).toHaveBeenCalledWith(1, 101);
+		expect(jobRoleApplicationMapper.toHireResponse).toHaveBeenCalledWith(
+			expect.objectContaining({ applicationId: 101 }),
+			1,
+		);
 		expect(result).toEqual({
 			application: {
 				applicationId: 101,
@@ -244,10 +327,33 @@ describe("JobRoleService", () => {
 		vi.mocked(s3Service.getPresignedDownloadUrl).mockResolvedValueOnce(
 			"https://example.com/download",
 		);
+		vi.mocked(
+			jobRoleApplicationMapper.toApplicationSummary,
+		).mockReturnValueOnce({
+			applicationId: 101,
+			userId: 7,
+			username: "candidate@example.com",
+			status: JobRoleApplicationStatusDto.Rejected,
+			appliedAt: "2026-07-01T12:00:00.000Z",
+			cvDownloadUrl: "https://example.com/download",
+		});
+		vi.mocked(jobRoleApplicationMapper.toRejectResponse).mockReturnValueOnce({
+			application: {
+				applicationId: 101,
+				userId: 7,
+				username: "candidate@example.com",
+				status: JobRoleApplicationStatusDto.Rejected,
+				appliedAt: "2026-07-01T12:00:00.000Z",
+				cvDownloadUrl: "https://example.com/download",
+			},
+		});
 
 		const result = await service.rejectApplicant(1, 101);
 
 		expect(jobRoleDao.rejectApplication).toHaveBeenCalledWith(1, 101);
+		expect(jobRoleApplicationMapper.toRejectResponse).toHaveBeenCalledWith(
+			expect.objectContaining({ applicationId: 101 }),
+		);
 		expect(result).toEqual({
 			application: {
 				applicationId: 101,

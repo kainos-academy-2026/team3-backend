@@ -9,7 +9,6 @@ import type {
 	JobRoleApplicationHireResponseDto,
 	JobRoleApplicationRejectResponseDto,
 	JobRoleApplicationResponseDto,
-	JobRoleApplicationStatusDto,
 	JobRoleApplicationSummaryDto,
 	JobRoleApplicationsAdminResponseDto,
 	JobRoleDetailedResponseDto,
@@ -20,6 +19,7 @@ import type { JobRoleMetadataResponseDto } from "../dtos/jobRoleMetadataDto.js";
 import type { UpdateJobRoleRequestDto } from "../dtos/updateJobRoleDto.js";
 import { InvalidJobRoleReferenceError } from "../errors/InvalidJobRoleReferenceError.js";
 import { JobRoleNotFoundError } from "../errors/JobRoleNotFoundError.js";
+import type { JobRoleApplicationMapper } from "../mappers/jobRoleApplicationMapper.js";
 import type { JobRoleMapper } from "../mappers/jobRoleMapper.js";
 import type { S3Service } from "./s3Service.js";
 
@@ -29,6 +29,7 @@ export class JobRoleService {
 		private readonly capabilityDao: CapabilityDao,
 		private readonly bandDao: BandDao,
 		private readonly jobRoleMapper: JobRoleMapper,
+		private readonly jobRoleApplicationMapper: JobRoleApplicationMapper,
 		private readonly s3Service: S3Service,
 	) {}
 
@@ -201,16 +202,14 @@ export class JobRoleService {
 	private async toApplicationSummary(
 		application: JobRoleApplicationWithUser,
 	): Promise<JobRoleApplicationSummaryDto> {
-		return {
-			applicationId: application.id,
-			userId: application.userId,
-			username: application.user.email,
-			status: application.status as JobRoleApplicationStatusDto,
-			appliedAt: application.appliedAt.toISOString(),
-			cvDownloadUrl: await this.s3Service.getPresignedDownloadUrl(
-				application.cvUrl,
-			),
-		};
+		const cvDownloadUrl = await this.s3Service.getPresignedDownloadUrl(
+			application.cvUrl,
+		);
+
+		return this.jobRoleApplicationMapper.toApplicationSummary(
+			application,
+			cvDownloadUrl,
+		);
 	}
 
 	async getJobRoleApplicationsForAdmin(
@@ -225,16 +224,14 @@ export class JobRoleService {
 		const applications =
 			await this.jobRoleDao.findApplicationsByJobRoleId(jobRoleId);
 
-		return {
-			jobRoleId: jobRole.id,
-			roleName: jobRole.roleName,
-			numberOfOpenPositions: jobRole.numberOfOpenPositions,
-			applicants: await Promise.all(
-				applications.map((application) =>
-					this.toApplicationSummary(application),
-				),
-			),
-		};
+		const applicants = await Promise.all(
+			applications.map((application) => this.toApplicationSummary(application)),
+		);
+
+		return this.jobRoleApplicationMapper.toAdminApplicationsResponse(
+			jobRole,
+			applicants,
+		);
 	}
 
 	async hireApplicant(
@@ -246,10 +243,12 @@ export class JobRoleService {
 			applicationId,
 		);
 
-		return {
-			application: await this.toApplicationSummary(result.application),
-			numberOfOpenPositions: result.numberOfOpenPositions,
-		};
+		const application = await this.toApplicationSummary(result.application);
+
+		return this.jobRoleApplicationMapper.toHireResponse(
+			application,
+			result.numberOfOpenPositions,
+		);
 	}
 
 	async rejectApplicant(
@@ -261,9 +260,9 @@ export class JobRoleService {
 			applicationId,
 		);
 
-		return {
-			application: await this.toApplicationSummary(application),
-		};
+		const applicationSummary = await this.toApplicationSummary(application);
+
+		return this.jobRoleApplicationMapper.toRejectResponse(applicationSummary);
 	}
 
 	async updateJobRole(
