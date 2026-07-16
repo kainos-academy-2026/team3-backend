@@ -45,6 +45,10 @@ vi.mock("../../src/services/jobRoleService.js", () => ({
 		createJobRole = mocks.mockCreateJobRole;
 		applyForJobRole = mocks.mockApplyForJobRole;
 		updateJobRole = mocks.mockUpdateJobRole;
+		getJobRoleApplicationsForAdmin = mocks.mockGetJobRoleApplicationsForAdmin;
+		hireApplicant = mocks.mockHireApplicant;
+		rejectApplicant = mocks.mockRejectApplicant;
+		deleteJobRole = mocks.mockDeleteJobRole;
 	},
 }));
 

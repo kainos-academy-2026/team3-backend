@@ -507,5 +507,4 @@ describe("JobRoleDao", () => {
 
 		await expect(dao.deleteJobRoleById(1)).rejects.toThrow("db down");
 	});
-
 });
