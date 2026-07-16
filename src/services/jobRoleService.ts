@@ -163,7 +163,7 @@ export class JobRoleService {
 			applicationId: application.id,
 			userId: application.userId,
 			username: application.user.email,
-			status: application.status,
+			status: application.status as JobRoleApplicationStatusDto,
 			appliedAt: application.appliedAt.toISOString(),
 			cvDownloadUrl: await this.s3Service.getPresignedDownloadUrl(
 				application.cvUrl,
