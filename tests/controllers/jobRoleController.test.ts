@@ -2,12 +2,16 @@ import type { Request, Response } from "express";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { JobRoleController } from "../../src/controllers/jobRoleController.js";
 import {
+	JobRoleApplicationStatusDto,
 	JobRoleStatusDto,
 	type PaginatedJobRoleResponseDto,
 } from "../../src/dtos/jobRoleDto.js";
 import type { JobRoleMetadataResponseDto } from "../../src/dtos/jobRoleMetadataDto.js";
 import type { UpdateJobRoleRequestDto } from "../../src/dtos/updateJobRoleDto.js";
+import { InvalidJobRoleApplicationStatusError } from "../../src/errors/InvalidJobRoleApplicationStatusError.js";
 import { InvalidJobRoleReferenceError } from "../../src/errors/InvalidJobRoleReferenceError.js";
+import { JobRoleApplicationNotFoundError } from "../../src/errors/JobRoleApplicationNotFoundError.js";
+import { JobRoleHasNoOpenPositionsError } from "../../src/errors/JobRoleHasNoOpenPositionsError.js";
 import { JobRoleNotFoundError } from "../../src/errors/JobRoleNotFoundError.js";
 import type { JobRoleService } from "../../src/services/jobRoleService.js";
 
@@ -19,6 +23,9 @@ const mockService = {
 	createJobRole: vi.fn(),
 	applyForJobRole: vi.fn(),
 	updateJobRole: vi.fn(),
+	getJobRoleApplicationsForAdmin: vi.fn(),
+	hireApplicant: vi.fn(),
+	rejectApplicant: vi.fn(),
 };
 
 describe("JobRoleController", () => {
@@ -32,6 +39,9 @@ describe("JobRoleController", () => {
 		| "updateJobRole"
 		| "generateJobRolesCsvReport"
 		| "applyForJobRole"
+		| "getJobRoleApplicationsForAdmin"
+		| "hireApplicant"
+		| "rejectApplicant"
 	>;
 	let req: Request;
 	let res: Response;
@@ -47,6 +57,10 @@ describe("JobRoleController", () => {
 			createJobRole: mockService.createJobRole,
 			applyForJobRole: mockService.applyForJobRole,
 			updateJobRole: mockService.updateJobRole,
+			getJobRoleApplicationsForAdmin:
+				mockService.getJobRoleApplicationsForAdmin,
+			hireApplicant: mockService.hireApplicant,
+			rejectApplicant: mockService.rejectApplicant,
 		};
 
 		controller = new JobRoleController(jobRoleService as JobRoleService);
@@ -241,6 +255,138 @@ describe("JobRoleController", () => {
 
 		expect(res.status).toHaveBeenCalledWith(500);
 		expect(res.json).toHaveBeenCalledWith({ error: "Internal server error" });
+	});
+
+	it("should return 200 with admin applications", async () => {
+		const payload = {
+			jobRoleId: 1,
+			roleName: "Backend Engineer",
+			numberOfOpenPositions: 2,
+			applicants: [
+				{
+					applicationId: 101,
+					userId: 7,
+					username: "candidate@example.com",
+					status: JobRoleApplicationStatusDto.InProgress,
+					appliedAt: "2026-07-01T12:00:00.000Z",
+					cvDownloadUrl: "https://example.com/download",
+				},
+			],
+		};
+
+		req = { params: { id: "1" } } as unknown as Request;
+		vi.mocked(
+			jobRoleService.getJobRoleApplicationsForAdmin,
+		).mockResolvedValueOnce(payload);
+
+		await controller.getJobRoleApplicationsForAdmin(req, res);
+
+		expect(jobRoleService.getJobRoleApplicationsForAdmin).toHaveBeenCalledWith(
+			1,
+		);
+		expect(res.status).toHaveBeenCalledWith(200);
+		expect(res.json).toHaveBeenCalledWith(payload);
+	});
+
+	it("should return 404 when admin applications target role is missing", async () => {
+		req = { params: { id: "999" } } as unknown as Request;
+		vi.mocked(
+			jobRoleService.getJobRoleApplicationsForAdmin,
+		).mockRejectedValueOnce(new JobRoleNotFoundError(999));
+
+		await controller.getJobRoleApplicationsForAdmin(req, res);
+
+		expect(res.status).toHaveBeenCalledWith(404);
+		expect(res.json).toHaveBeenCalledWith({
+			error: "Job role with id 999 was not found",
+		});
+	});
+
+	it("should return 200 when hireApplicant succeeds", async () => {
+		const payload = {
+			application: {
+				applicationId: 101,
+				userId: 7,
+				username: "candidate@example.com",
+				status: JobRoleApplicationStatusDto.Hired,
+				appliedAt: "2026-07-01T12:00:00.000Z",
+				cvDownloadUrl: "https://example.com/download",
+			},
+			numberOfOpenPositions: 1,
+		};
+
+		req = { params: { id: "1", applicationId: "101" } } as unknown as Request;
+		vi.mocked(jobRoleService.hireApplicant).mockResolvedValueOnce(payload);
+
+		await controller.hireApplicant(req, res);
+
+		expect(jobRoleService.hireApplicant).toHaveBeenCalledWith(1, 101);
+		expect(res.status).toHaveBeenCalledWith(200);
+		expect(res.json).toHaveBeenCalledWith(payload);
+	});
+
+	it("should return 404 when hireApplicant cannot find the application", async () => {
+		req = { params: { id: "1", applicationId: "999" } } as unknown as Request;
+		vi.mocked(jobRoleService.hireApplicant).mockRejectedValueOnce(
+			new JobRoleApplicationNotFoundError(1, 999),
+		);
+
+		await controller.hireApplicant(req, res);
+
+		expect(res.status).toHaveBeenCalledWith(404);
+		expect(res.json).toHaveBeenCalledWith({
+			error: "Application with id 999 was not found for job role 1",
+		});
+	});
+
+	it("should return 400 when hireApplicant has no positions", async () => {
+		req = { params: { id: "1", applicationId: "101" } } as unknown as Request;
+		vi.mocked(jobRoleService.hireApplicant).mockRejectedValueOnce(
+			new JobRoleHasNoOpenPositionsError(1),
+		);
+
+		await controller.hireApplicant(req, res);
+
+		expect(res.status).toHaveBeenCalledWith(400);
+		expect(res.json).toHaveBeenCalledWith({
+			error: "Job role with id 1 has no open positions",
+		});
+	});
+
+	it("should return 400 when rejectApplicant transition is invalid", async () => {
+		req = { params: { id: "1", applicationId: "101" } } as unknown as Request;
+		vi.mocked(jobRoleService.rejectApplicant).mockRejectedValueOnce(
+			new InvalidJobRoleApplicationStatusError(101, "Rejected"),
+		);
+
+		await controller.rejectApplicant(req, res);
+
+		expect(res.status).toHaveBeenCalledWith(400);
+		expect(res.json).toHaveBeenCalledWith({
+			error: "Application 101 cannot transition from status Rejected",
+		});
+	});
+
+	it("should return 200 when rejectApplicant succeeds", async () => {
+		const payload = {
+			application: {
+				applicationId: 101,
+				userId: 7,
+				username: "candidate@example.com",
+				status: JobRoleApplicationStatusDto.Rejected,
+				appliedAt: "2026-07-01T12:00:00.000Z",
+				cvDownloadUrl: "https://example.com/download",
+			},
+		};
+
+		req = { params: { id: "1", applicationId: "101" } } as unknown as Request;
+		vi.mocked(jobRoleService.rejectApplicant).mockResolvedValueOnce(payload);
+
+		await controller.rejectApplicant(req, res);
+
+		expect(jobRoleService.rejectApplicant).toHaveBeenCalledWith(1, 101);
+		expect(res.status).toHaveBeenCalledWith(200);
+		expect(res.json).toHaveBeenCalledWith(payload);
 	});
 
 	it("should return 200 with presigned upload data for applyForJobRole", async () => {

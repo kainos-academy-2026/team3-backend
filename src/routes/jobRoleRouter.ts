@@ -5,10 +5,12 @@ import { CapabilityDao } from "../daos/capabilityDao.js";
 import { JobRoleDao } from "../daos/jobRoleDao.js";
 import {
 	CreateJobRoleRequestSchema,
+	JobRoleApplicationActionParamsSchema,
 	JobRoleIdParamSchema,
 	JobRolePaginationQuerySchema,
 } from "../dtos/jobRoleDto.js";
 import { UpdateJobRoleRequestSchema } from "../dtos/updateJobRoleDto.js";
+import { JobRoleApplicationMapper } from "../mappers/jobRoleApplicationMapper.js";
 import { JobRoleMapper } from "../mappers/jobRoleMapper.js";
 import { authenticate, requireAdmin } from "../middleware/auth.js";
 import {
@@ -24,12 +26,14 @@ const capabilityDao = new CapabilityDao();
 const bandDao = new BandDao();
 const jobRoleDao = new JobRoleDao();
 const jobRoleMapper = new JobRoleMapper();
+const jobRoleApplicationMapper = new JobRoleApplicationMapper();
 const s3Service = new S3Service();
 const jobRoleService = new JobRoleService(
 	jobRoleDao,
 	capabilityDao,
 	bandDao,
 	jobRoleMapper,
+	jobRoleApplicationMapper,
 	s3Service,
 );
 const jobRoleController = new JobRoleController(jobRoleService);
@@ -58,6 +62,27 @@ router.get(
 	authenticate,
 	requireAdmin,
 	jobRoleController.downloadJobRolesReport.bind(jobRoleController),
+);
+router.get(
+	"/:id/applications",
+	authenticate,
+	requireAdmin,
+	validateParams(JobRoleIdParamSchema),
+	jobRoleController.getJobRoleApplicationsForAdmin.bind(jobRoleController),
+);
+router.patch(
+	"/:id/applications/:applicationId/hire",
+	authenticate,
+	requireAdmin,
+	validateParams(JobRoleApplicationActionParamsSchema),
+	jobRoleController.hireApplicant.bind(jobRoleController),
+);
+router.patch(
+	"/:id/applications/:applicationId/reject",
+	authenticate,
+	requireAdmin,
+	validateParams(JobRoleApplicationActionParamsSchema),
+	jobRoleController.rejectApplicant.bind(jobRoleController),
 );
 router.get(
 	"/:id",

@@ -3,10 +3,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
 	getSignedUrl: vi.fn(),
 	putObjectCommand: vi.fn(),
+	getObjectCommand: vi.fn(),
 	s3Client: vi.fn(),
 }));
 
 vi.mock("@aws-sdk/client-s3", () => ({
+	GetObjectCommand: mocks.getObjectCommand,
 	PutObjectCommand: mocks.putObjectCommand,
 	S3Client: mocks.s3Client,
 }));
@@ -47,6 +49,19 @@ describe("S3Service", () => {
 			uploadUrl: "https://example.com/upload",
 			key: "job-applications/2/7/123-cv.pdf",
 		});
+	});
+
+	it("should return a presigned download url", async () => {
+		mocks.getSignedUrl.mockResolvedValueOnce("https://example.com/download");
+
+		const service = new S3Service();
+		const result = await service.getPresignedDownloadUrl(
+			"job-applications/2/7/123-cv.pdf",
+		);
+
+		expect(result).toBe("https://example.com/download");
+		expect(mocks.getSignedUrl).toHaveBeenCalledTimes(1);
+		expect(mocks.putObjectCommand).not.toHaveBeenCalled();
 	});
 
 	it("should throw when AWS_REGION is missing", () => {
