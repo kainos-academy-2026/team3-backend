@@ -8,7 +8,9 @@ import type {
 	JobRoleResponseDto,
 } from "../dtos/jobRoleDto.js";
 import type { JobRoleMetadataResponseDto } from "../dtos/jobRoleMetadataDto.js";
+import type { UpdateJobRoleRequestDto } from "../dtos/updateJobRoleDto.js";
 import { InvalidJobRoleReferenceError } from "../errors/InvalidJobRoleReferenceError.js";
+import { JobRoleNotFoundError } from "../errors/JobRoleNotFoundError.js";
 import type { JobRoleMapper } from "../mappers/jobRoleMapper.js";
 import type { S3Service } from "./s3Service.js";
 
@@ -145,5 +147,45 @@ export class JobRoleService {
 		);
 		await this.jobRoleDao.createApplication(userId, jobRoleId, key);
 		return { uploadUrl, key };
+	}
+
+	async updateJobRole(
+		id: number,
+		data: UpdateJobRoleRequestDto,
+	): Promise<JobRoleDetailedResponseDto> {
+		const existingJobRole = await this.jobRoleDao.findJobRoleById(id);
+
+		if (!existingJobRole) {
+			throw new JobRoleNotFoundError(id);
+		}
+
+		if (data.capabilityId !== undefined) {
+			const capability = await this.jobRoleDao.findCapabilityById(
+				data.capabilityId,
+			);
+
+			if (!capability) {
+				throw new InvalidJobRoleReferenceError(
+					`Capability with id ${data.capabilityId} was not found`,
+				);
+			}
+		}
+
+		if (data.bandId !== undefined) {
+			const band = await this.jobRoleDao.findBandById(data.bandId);
+
+			if (!band) {
+				throw new InvalidJobRoleReferenceError(
+					`Band with id ${data.bandId} was not found`,
+				);
+			}
+		}
+
+		const updatedJobRole = await this.jobRoleDao.updateJobRole(id, {
+			...data,
+			closingDate: data.closingDate ? new Date(data.closingDate) : undefined,
+		});
+
+		return this.jobRoleMapper.toDetailedResponse(updatedJobRole);
 	}
 }
