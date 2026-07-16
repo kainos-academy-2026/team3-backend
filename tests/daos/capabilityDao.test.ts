@@ -34,7 +34,9 @@ describe("CapabilityDao", () => {
 				capabilityName: "asc",
 			},
 		});
-		expect(result).toEqual([{ capabilityId: 1, capabilityName: "Engineering" }]);
+		expect(result).toEqual([
+			{ capabilityId: 1, capabilityName: "Engineering" },
+		]);
 	});
 
 	it("should find capability by id", async () => {

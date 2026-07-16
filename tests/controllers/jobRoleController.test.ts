@@ -1,8 +1,11 @@
 import type { Request, Response } from "express";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { JobRoleController } from "../../src/controllers/jobRoleController.js";
+import {
+	type JobRoleResponseDto,
+	JobRoleStatusDto,
+} from "../../src/dtos/jobRoleDto.js";
 import type { JobRoleMetadataResponseDto } from "../../src/dtos/jobRoleMetadataDto.js";
-import { type JobRoleResponseDto, JobRoleStatusDto } from "../../src/dtos/jobRoleDto.js";
 import { InvalidJobRoleReferenceError } from "../../src/errors/InvalidJobRoleReferenceError.js";
 import type { JobRoleService } from "../../src/services/jobRoleService.js";
 
@@ -36,7 +39,6 @@ describe("JobRoleController", () => {
 			findAllJobRoles: mockService.findAllJobRoles,
 			getJobRoleMetadata: mockService.getJobRoleMetadata,
 			generateJobRolesCsvReport: mockService.generateJobRolesCsvReport,
-			getJobRoleMetadata: mockService.getJobRoleMetadata,
 			findJobRoleById: mockService.findJobRoleById,
 			createJobRole: mockService.createJobRole,
 			applyForJobRole: mockService.applyForJobRole,
@@ -98,7 +100,9 @@ describe("JobRoleController", () => {
 			bands: [{ bandId: 2, bandName: "Band 2" }],
 		};
 
-		vi.mocked(jobRoleService.getJobRoleMetadata).mockResolvedValueOnce(metadata);
+		vi.mocked(jobRoleService.getJobRoleMetadata).mockResolvedValueOnce(
+			metadata,
+		);
 
 		await controller.getJobRoleMetadata(req, res);
 
@@ -326,7 +330,9 @@ describe("JobRoleController", () => {
 		};
 
 		req = { body: payload } as Request;
-		vi.mocked(jobRoleService.createJobRole).mockResolvedValueOnce(createdJobRole);
+		vi.mocked(jobRoleService.createJobRole).mockResolvedValueOnce(
+			createdJobRole,
+		);
 
 		await controller.createJobRole(req, res);
 

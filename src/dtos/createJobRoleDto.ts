@@ -26,10 +26,7 @@ export const CreateJobRoleRequestSchema = z.object({
 			"Closing date must be valid",
 		),
 	description: z.string().trim().min(1, "Description is required"),
-	responsibilities: z
-		.string()
-		.trim()
-		.min(1, "Responsibilities are required"),
+	responsibilities: z.string().trim().min(1, "Responsibilities are required"),
 	sharepointUrl: z.string().trim().url("SharePoint URL must be a valid URL"),
 	numberOfOpenPositions: z.coerce
 		.number()

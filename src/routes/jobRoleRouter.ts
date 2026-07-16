@@ -40,23 +40,12 @@ router.post(
 	requireAdmin,
 	validateBody(CreateJobRoleRequestSchema),
 	jobRoleController.createJobRole.bind(jobRoleController),
+);
+router.get(
 	"/report",
 	authenticate,
 	requireAdmin,
 	jobRoleController.downloadJobRolesReport.bind(jobRoleController),
-);
-router.get(
-	"/metadata",
-	authenticate,
-	requireAdmin,
-	jobRoleController.getJobRoleMetadata.bind(jobRoleController),
-);
-router.post(
-	"/",
-	authenticate,
-	requireAdmin,
-	validateBody(CreateJobRoleRequestSchema),
-	jobRoleController.createJobRole.bind(jobRoleController),
 );
 router.get(
 	"/:id",

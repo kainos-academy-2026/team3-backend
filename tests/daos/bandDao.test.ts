@@ -22,7 +22,9 @@ describe("BandDao", () => {
 	});
 
 	it("should return all bands ordered by name", async () => {
-		mocks.bandFindMany.mockResolvedValueOnce([{ bandId: 1, bandName: "Band 1" }]);
+		mocks.bandFindMany.mockResolvedValueOnce([
+			{ bandId: 1, bandName: "Band 1" },
+		]);
 
 		const dao = new BandDao();
 		const result = await dao.findAllBands();

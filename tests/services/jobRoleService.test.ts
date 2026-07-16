@@ -1,15 +1,15 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { BandDao } from "../../src/daos/bandDao.js";
 import type { CapabilityDao } from "../../src/daos/capabilityDao.js";
-import { beforeEach, describe, expect, it, vi } from "vitest";
 import type {
 	JobRoleDao,
 	JobRoleWithRelations,
 } from "../../src/daos/jobRoleDao.js";
+import type { CreateJobRoleRequestDto } from "../../src/dtos/createJobRoleDto.js";
 import {
 	type JobRoleResponseDto,
 	JobRoleStatusDto,
 } from "../../src/dtos/jobRoleDto.js";
-import type { CreateJobRoleRequestDto } from "../../src/dtos/createJobRoleDto.js";
 import { InvalidJobRoleReferenceError } from "../../src/errors/InvalidJobRoleReferenceError.js";
 import type { JobRoleMapper } from "../../src/mappers/jobRoleMapper.js";
 import { JobRoleService } from "../../src/services/jobRoleService.js";
@@ -50,7 +50,10 @@ describe("JobRoleService", () => {
 		| "createJobRole"
 		| "createApplication"
 	>;
-	let capabilityDao: Pick<CapabilityDao, "findAllCapabilities" | "findCapabilityById">;
+	let capabilityDao: Pick<
+		CapabilityDao,
+		"findAllCapabilities" | "findCapabilityById"
+	>;
 	let bandDao: Pick<BandDao, "findAllBands" | "findBandById">;
 	let jobRoleMapper: Pick<JobRoleMapper, "toResponse" | "toDetailedResponse">;
 	let s3Service: Pick<S3Service, "getPresignedUploadUrl">;
@@ -373,7 +376,9 @@ describe("JobRoleService", () => {
 			sharepointUrl: requestData.sharepointUrl,
 			numberOfOpenPositions: requestData.numberOfOpenPositions,
 		});
-		expect(jobRoleMapper.toDetailedResponse).toHaveBeenCalledWith(createdJobRole);
+		expect(jobRoleMapper.toDetailedResponse).toHaveBeenCalledWith(
+			createdJobRole,
+		);
 		expect(result).toEqual(mappedCreatedJobRole);
 	});
 

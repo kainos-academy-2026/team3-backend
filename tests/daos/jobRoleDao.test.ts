@@ -62,40 +62,6 @@ describe("JobRoleDao", () => {
 		expect(result).toEqual(dbRows);
 	});
 
-	it("should return all capabilities ordered by name", async () => {
-		mocks.capabilityFindMany.mockResolvedValueOnce([
-			{ capabilityId: 1, capabilityName: "Engineering" },
-		]);
-
-		const dao = new JobRoleDao();
-		const result = await dao.findAllCapabilities();
-
-		expect(mocks.capabilityFindMany).toHaveBeenCalledWith({
-			orderBy: {
-				capabilityName: "asc",
-			},
-		});
-		expect(result).toEqual([
-			{ capabilityId: 1, capabilityName: "Engineering" },
-		]);
-	});
-
-	it("should return all bands ordered by name", async () => {
-		mocks.bandFindMany.mockResolvedValueOnce([
-			{ bandId: 1, bandName: "Band 1" },
-		]);
-
-		const dao = new JobRoleDao();
-		const result = await dao.findAllBands();
-
-		expect(mocks.bandFindMany).toHaveBeenCalledWith({
-			orderBy: {
-				bandName: "asc",
-			},
-		});
-		expect(result).toEqual([{ bandId: 1, bandName: "Band 1" }]);
-	});
-
 	it("should return one job role by id with relations", async () => {
 		const dbRow = {
 			id: 1,

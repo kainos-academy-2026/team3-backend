@@ -43,16 +43,6 @@ export class JobRoleController {
 		}
 	}
 
-	async getJobRoleMetadata(_req: Request, res: Response): Promise<void> {
-		try {
-			const metadata = await this.jobRoleService.getJobRoleMetadata();
-			res.status(200).json(metadata);
-		} catch (error) {
-			console.error(error);
-			res.status(500).json({ error: "Internal server error" });
-		}
-	}
-
 	async getJobRoleById(req: Request, res: Response): Promise<void> {
 		try {
 			const id = Number(req.params.id);
