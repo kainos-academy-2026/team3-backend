@@ -125,6 +125,8 @@ export const JobRoleApplicationActionParamsSchema = z.object({
 		.number()
 		.int()
 		.positive("Application ID must be a positive integer"),
+});
+
 export const JobRolePaginationQuerySchema = z.object({
 	limit: z.coerce
 		.number()

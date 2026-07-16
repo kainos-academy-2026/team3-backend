@@ -7,8 +7,8 @@ import type {
 } from "../../src/daos/jobRoleDao.js";
 import type { CreateJobRoleRequestDto } from "../../src/dtos/createJobRoleDto.js";
 import {
-	type JobRoleResponseDto,
 	JobRoleApplicationStatusDto,
+	type JobRoleResponseDto,
 	JobRoleStatusDto,
 } from "../../src/dtos/jobRoleDto.js";
 import type { UpdateJobRoleRequestDto } from "../../src/dtos/updateJobRoleDto.js";

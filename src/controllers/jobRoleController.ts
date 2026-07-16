@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 import { JobRolePaginationQuerySchema } from "../dtos/jobRoleDto.js";
-import { InvalidJobRoleReferenceError } from "../errors/InvalidJobRoleReferenceError.js";
 import { InvalidJobRoleApplicationStatusError } from "../errors/InvalidJobRoleApplicationStatusError.js";
+import { InvalidJobRoleReferenceError } from "../errors/InvalidJobRoleReferenceError.js";
 import { JobRoleApplicationNotFoundError } from "../errors/JobRoleApplicationNotFoundError.js";
 import { JobRoleHasNoOpenPositionsError } from "../errors/JobRoleHasNoOpenPositionsError.js";
 import { JobRoleNotFoundError } from "../errors/JobRoleNotFoundError.js";

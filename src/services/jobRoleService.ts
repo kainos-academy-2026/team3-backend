@@ -8,14 +8,14 @@ import type { CreateJobRoleRequestDto } from "../dtos/createJobRoleDto.js";
 import type {
 	JobRoleApplicationHireResponseDto,
 	JobRoleApplicationRejectResponseDto,
+	JobRoleApplicationResponseDto,
+	JobRoleApplicationStatusDto,
 	JobRoleApplicationSummaryDto,
 	JobRoleApplicationsAdminResponseDto,
-	JobRoleApplicationResponseDto,
 	JobRoleDetailedResponseDto,
 	JobRolePaginationQueryDto,
 	PaginatedJobRoleResponseDto,
 } from "../dtos/jobRoleDto.js";
-import { JobRoleApplicationStatusDto } from "../dtos/jobRoleDto.js";
 import type { JobRoleMetadataResponseDto } from "../dtos/jobRoleMetadataDto.js";
 import type { UpdateJobRoleRequestDto } from "../dtos/updateJobRoleDto.js";
 import { InvalidJobRoleReferenceError } from "../errors/InvalidJobRoleReferenceError.js";

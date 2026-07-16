@@ -2,15 +2,14 @@ import type { Request, Response } from "express";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { JobRoleController } from "../../src/controllers/jobRoleController.js";
 import {
-	type JobRoleResponseDto,
 	JobRoleApplicationStatusDto,
 	JobRoleStatusDto,
 	type PaginatedJobRoleResponseDto,
 } from "../../src/dtos/jobRoleDto.js";
 import type { JobRoleMetadataResponseDto } from "../../src/dtos/jobRoleMetadataDto.js";
 import type { UpdateJobRoleRequestDto } from "../../src/dtos/updateJobRoleDto.js";
-import { InvalidJobRoleReferenceError } from "../../src/errors/InvalidJobRoleReferenceError.js";
 import { InvalidJobRoleApplicationStatusError } from "../../src/errors/InvalidJobRoleApplicationStatusError.js";
+import { InvalidJobRoleReferenceError } from "../../src/errors/InvalidJobRoleReferenceError.js";
 import { JobRoleApplicationNotFoundError } from "../../src/errors/JobRoleApplicationNotFoundError.js";
 import { JobRoleHasNoOpenPositionsError } from "../../src/errors/JobRoleHasNoOpenPositionsError.js";
 import { JobRoleNotFoundError } from "../../src/errors/JobRoleNotFoundError.js";
