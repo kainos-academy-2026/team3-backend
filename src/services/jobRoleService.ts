@@ -12,7 +12,8 @@ import type {
 	JobRoleApplicationsAdminResponseDto,
 	JobRoleApplicationResponseDto,
 	JobRoleDetailedResponseDto,
-	JobRoleResponseDto,
+	JobRolePaginationQueryDto,
+	PaginatedJobRoleResponseDto,
 } from "../dtos/jobRoleDto.js";
 import { JobRoleApplicationStatusDto } from "../dtos/jobRoleDto.js";
 import type { JobRoleMetadataResponseDto } from "../dtos/jobRoleMetadataDto.js";
@@ -37,9 +38,49 @@ export class JobRoleService {
 		return `"${escapedValue}"`;
 	}
 
-	async findAllJobRoles(): Promise<JobRoleResponseDto[]> {
-		const jobRoles = await this.jobRoleDao.findAllJobRoles();
-		return jobRoles.map((jobRole) => this.jobRoleMapper.toResponse(jobRole));
+	private buildPaginationLink(limit: number, page: number): string {
+		return `/api/job-roles?limit=${limit}&page=${page}`;
+	}
+
+	async findAllJobRoles(
+		query: JobRolePaginationQueryDto,
+	): Promise<PaginatedJobRoleResponseDto> {
+		const [jobRoles, totalItems] = await Promise.all([
+			this.jobRoleDao.findPaginatedJobRoles(query.limit, query.page),
+			this.jobRoleDao.countJobRoles(),
+		]);
+
+		const data = jobRoles.map((jobRole) =>
+			this.jobRoleMapper.toResponse(jobRole),
+		);
+		const totalPages = Math.ceil(totalItems / query.limit);
+		const hasPrevious = totalPages > 0 && query.page > 1;
+		const hasNext = query.page < totalPages;
+
+		return {
+			data,
+			pagination: {
+				totalItems,
+				totalPages,
+				currentPage: query.page,
+				pageSize: query.limit,
+				hasNext,
+				hasPrevious,
+			},
+			links: {
+				first: totalPages > 0 ? this.buildPaginationLink(query.limit, 1) : null,
+				next: hasNext
+					? this.buildPaginationLink(query.limit, query.page + 1)
+					: null,
+				previous: hasPrevious
+					? this.buildPaginationLink(query.limit, query.page - 1)
+					: null,
+				last:
+					totalPages > 0
+						? this.buildPaginationLink(query.limit, totalPages)
+						: null,
+			},
+		};
 	}
 
 	async getJobRoleMetadata(): Promise<JobRoleMetadataResponseDto> {

@@ -7,11 +7,16 @@ import {
 	CreateJobRoleRequestSchema,
 	JobRoleApplicationActionParamsSchema,
 	JobRoleIdParamSchema,
+	JobRolePaginationQuerySchema,
 } from "../dtos/jobRoleDto.js";
 import { UpdateJobRoleRequestSchema } from "../dtos/updateJobRoleDto.js";
 import { JobRoleMapper } from "../mappers/jobRoleMapper.js";
 import { authenticate, requireAdmin } from "../middleware/auth.js";
-import { validateBody, validateParams } from "../middleware/validate.js";
+import {
+	validateBody,
+	validateParams,
+	validateQuery,
+} from "../middleware/validate.js";
 import { JobRoleService } from "../services/jobRoleService.js";
 import { S3Service } from "../services/s3Service.js";
 
@@ -30,7 +35,11 @@ const jobRoleService = new JobRoleService(
 );
 const jobRoleController = new JobRoleController(jobRoleService);
 
-router.get("/", jobRoleController.getAllJobRoles.bind(jobRoleController));
+router.get(
+	"/",
+	validateQuery(JobRolePaginationQuerySchema),
+	jobRoleController.getAllJobRoles.bind(jobRoleController),
+);
 
 router.get(
 	"/metadata",

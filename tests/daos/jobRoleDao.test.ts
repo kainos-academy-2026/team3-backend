@@ -3,6 +3,7 @@ import type { JobRoleWithRelations } from "../../src/daos/jobRoleDao.js";
 
 const mocks = vi.hoisted(() => ({
 	findMany: vi.fn(),
+	count: vi.fn(),
 	findUnique: vi.fn(),
 	jobRoleCreate: vi.fn(),
 	jobRoleUpdateMany: vi.fn(),
@@ -29,6 +30,7 @@ vi.mock("../../src/prismaClient.js", () => ({
 		$transaction: mocks.transaction,
 		jobRole: {
 			findMany: mocks.findMany,
+			count: mocks.count,
 			findUnique: mocks.findUnique,
 			create: mocks.jobRoleCreate,
 			update: mocks.update,
@@ -96,12 +98,59 @@ describe("JobRoleDao", () => {
 
 		expect(mocks.findMany).toHaveBeenCalledTimes(1);
 		expect(mocks.findMany).toHaveBeenCalledWith({
+			orderBy: {
+				id: "desc",
+			},
 			include: {
 				capability: true,
 				band: true,
 			},
 		});
 		expect(result).toEqual(dbRows);
+	});
+
+	it("should return a paginated list of job roles", async () => {
+		const dbRows = [
+			{
+				id: 3,
+				roleName: "Senior Backend Engineer",
+				location: "Dublin",
+				capabilityId: 10,
+				bandId: 3,
+				closingDate: new Date("2026-09-01"),
+				status: "Open",
+				capability: { capabilityId: 10, capabilityName: "Engineering" },
+				band: { bandId: 3, bandName: "Band 3" },
+			},
+		] as unknown as JobRoleWithRelations[];
+
+		mocks.findMany.mockResolvedValueOnce(dbRows);
+
+		const dao = new JobRoleDao();
+		const result = await dao.findPaginatedJobRoles(10, 2);
+
+		expect(mocks.findMany).toHaveBeenCalledWith({
+			skip: 10,
+			take: 10,
+			orderBy: {
+				id: "desc",
+			},
+			include: {
+				capability: true,
+				band: true,
+			},
+		});
+		expect(result).toEqual(dbRows);
+	});
+
+	it("should return total count of job roles", async () => {
+		mocks.count.mockResolvedValueOnce(37);
+
+		const dao = new JobRoleDao();
+		const result = await dao.countJobRoles();
+
+		expect(mocks.count).toHaveBeenCalledTimes(1);
+		expect(result).toBe(37);
 	});
 
 	it("should return one job role by id with relations", async () => {

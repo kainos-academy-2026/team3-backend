@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import { JobRolePaginationQuerySchema } from "../dtos/jobRoleDto.js";
 import { InvalidJobRoleReferenceError } from "../errors/InvalidJobRoleReferenceError.js";
 import { InvalidJobRoleApplicationStatusError } from "../errors/InvalidJobRoleApplicationStatusError.js";
 import { JobRoleApplicationNotFoundError } from "../errors/JobRoleApplicationNotFoundError.js";
@@ -9,9 +10,10 @@ import type { JobRoleService } from "../services/jobRoleService.js";
 export class JobRoleController {
 	constructor(private readonly jobRoleService: JobRoleService) {}
 
-	async getAllJobRoles(_req: Request, res: Response): Promise<void> {
+	async getAllJobRoles(req: Request, res: Response): Promise<void> {
 		try {
-			const jobRoles = await this.jobRoleService.findAllJobRoles();
+			const query = JobRolePaginationQuerySchema.parse(req.query);
+			const jobRoles = await this.jobRoleService.findAllJobRoles(query);
 
 			res.status(200).json(jobRoles);
 		} catch (error) {

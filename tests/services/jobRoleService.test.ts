@@ -20,6 +20,8 @@ import type { S3Service } from "../../src/services/s3Service.js";
 
 const mockJobRoleDao = {
 	findAllJobRoles: vi.fn(),
+	findPaginatedJobRoles: vi.fn(),
+	countJobRoles: vi.fn(),
 	findJobRoleById: vi.fn(),
 	createJobRole: vi.fn(),
 	findCapabilityById: vi.fn(),
@@ -56,6 +58,8 @@ describe("JobRoleService", () => {
 	let jobRoleDao: Pick<
 		JobRoleDao,
 		| "findAllJobRoles"
+		| "findPaginatedJobRoles"
+		| "countJobRoles"
 		| "findJobRoleById"
 		| "createJobRole"
 		| "findCapabilityById"
@@ -82,6 +86,8 @@ describe("JobRoleService", () => {
 
 		jobRoleDao = {
 			findAllJobRoles: mockJobRoleDao.findAllJobRoles,
+			findPaginatedJobRoles: mockJobRoleDao.findPaginatedJobRoles,
+			countJobRoles: mockJobRoleDao.countJobRoles,
 			findJobRoleById: mockJobRoleDao.findJobRoleById,
 			createJobRole: mockJobRoleDao.createJobRole,
 			findCapabilityById: mockJobRoleDao.findCapabilityById,
@@ -280,7 +286,7 @@ describe("JobRoleService", () => {
 		await expect(service.getJobRoleMetadata()).rejects.toThrow("db down");
 	});
 
-	it("should return mapped job roles from dao data", async () => {
+	it("should return paginated mapped job roles from dao data", async () => {
 		const daoJobRoles = [
 			{
 				id: 1,
@@ -319,25 +325,72 @@ describe("JobRoleService", () => {
 			},
 		];
 
-		vi.mocked(jobRoleDao.findAllJobRoles).mockResolvedValueOnce(daoJobRoles);
+		vi.mocked(jobRoleDao.findPaginatedJobRoles).mockResolvedValueOnce(
+			daoJobRoles,
+		);
+		vi.mocked(jobRoleDao.countJobRoles).mockResolvedValueOnce(1);
 		vi.mocked(jobRoleMapper.toResponse).mockReturnValueOnce(mappedJobRoles[0]);
 
-		const result = await service.findAllJobRoles();
+		const result = await service.findAllJobRoles({ limit: 10, page: 1 });
 
-		expect(jobRoleDao.findAllJobRoles).toHaveBeenCalledTimes(1);
+		expect(jobRoleDao.findPaginatedJobRoles).toHaveBeenCalledWith(10, 1);
+		expect(jobRoleDao.countJobRoles).toHaveBeenCalledTimes(1);
 		expect(jobRoleMapper.toResponse).toHaveBeenCalledTimes(1);
 		expect(jobRoleMapper.toResponse).toHaveBeenCalledWith(daoJobRoles[0]);
-		expect(result).toEqual(mappedJobRoles);
+		expect(result).toEqual({
+			data: mappedJobRoles,
+			pagination: {
+				totalItems: 1,
+				totalPages: 1,
+				currentPage: 1,
+				pageSize: 10,
+				hasNext: false,
+				hasPrevious: false,
+			},
+			links: {
+				first: "/api/job-roles?limit=10&page=1",
+				next: null,
+				previous: null,
+				last: "/api/job-roles?limit=10&page=1",
+			},
+		});
 	});
 
 	it("should throw when dao fails", async () => {
-		vi.mocked(jobRoleDao.findAllJobRoles).mockRejectedValueOnce(
+		vi.mocked(jobRoleDao.findPaginatedJobRoles).mockRejectedValueOnce(
 			new Error("db down"),
 		);
 
-		await expect(service.findAllJobRoles()).rejects.toThrow("db down");
-		expect(jobRoleDao.findAllJobRoles).toHaveBeenCalledTimes(1);
+		await expect(
+			service.findAllJobRoles({ limit: 10, page: 1 }),
+		).rejects.toThrow("db down");
+		expect(jobRoleDao.findPaginatedJobRoles).toHaveBeenCalledTimes(1);
 		expect(jobRoleMapper.toResponse).not.toHaveBeenCalled();
+	});
+
+	it("should return empty data when page is out of range", async () => {
+		vi.mocked(jobRoleDao.findPaginatedJobRoles).mockResolvedValueOnce([]);
+		vi.mocked(jobRoleDao.countJobRoles).mockResolvedValueOnce(3);
+
+		const result = await service.findAllJobRoles({ limit: 10, page: 2 });
+
+		expect(result).toEqual({
+			data: [],
+			pagination: {
+				totalItems: 3,
+				totalPages: 1,
+				currentPage: 2,
+				pageSize: 10,
+				hasNext: false,
+				hasPrevious: true,
+			},
+			links: {
+				first: "/api/job-roles?limit=10&page=1",
+				next: null,
+				previous: "/api/job-roles?limit=10&page=1",
+				last: "/api/job-roles?limit=10&page=1",
+			},
+		});
 	});
 
 	it("should generate a csv report with all job role information", async () => {

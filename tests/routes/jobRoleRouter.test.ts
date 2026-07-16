@@ -72,29 +72,45 @@ describe("GET /api/job-roles", () => {
 	});
 
 	it("should return 200 with a list of job roles", async () => {
-		mocks.mockFindAllJobRoles.mockResolvedValueOnce([
-			{
-				id: 1,
-				roleName: "Backend Engineer",
-				location: "Dublin",
-				capability: {
-					capabilityId: 10,
-					capabilityName: "Engineering",
+		mocks.mockFindAllJobRoles.mockResolvedValueOnce({
+			data: [
+				{
+					id: 1,
+					roleName: "Backend Engineer",
+					location: "Dublin",
+					capability: {
+						capabilityId: 10,
+						capabilityName: "Engineering",
+					},
+					band: {
+						bandId: 3,
+						bandName: "Band 3",
+					},
+					closingDate: "2026-08-31",
+					status: "Open",
 				},
-				band: {
-					bandId: 3,
-					bandName: "Band 3",
-				},
-				closingDate: "2026-08-31",
-				status: "Open",
+			],
+			pagination: {
+				totalItems: 1,
+				totalPages: 1,
+				currentPage: 1,
+				pageSize: 10,
+				hasNext: false,
+				hasPrevious: false,
 			},
-		]);
+			links: {
+				first: "/api/job-roles?limit=10&page=1",
+				next: null,
+				previous: null,
+				last: "/api/job-roles?limit=10&page=1",
+			},
+		});
 
 		const response = await request(app).get("/api/job-roles");
 
 		expect(response.status).toBe(200);
-		expect(response.body).toHaveLength(1);
-		expect(response.body[0]).toMatchObject({
+		expect(response.body.data).toHaveLength(1);
+		expect(response.body.data[0]).toMatchObject({
 			id: 1,
 			roleName: "Backend Engineer",
 			location: "Dublin",
@@ -108,6 +124,40 @@ describe("GET /api/job-roles", () => {
 			},
 			closingDate: "2026-08-31",
 			status: "Open",
+		});
+		expect(response.body.pagination).toEqual({
+			totalItems: 1,
+			totalPages: 1,
+			currentPage: 1,
+			pageSize: 10,
+			hasNext: false,
+			hasPrevious: false,
+		});
+		expect(response.body.links).toEqual({
+			first: "/api/job-roles?limit=10&page=1",
+			next: null,
+			previous: null,
+			last: "/api/job-roles?limit=10&page=1",
+		});
+	});
+
+	it("should return 400 when limit is greater than maximum", async () => {
+		const response = await request(app).get("/api/job-roles?limit=31&page=1");
+
+		expect(response.status).toBe(400);
+		expect(response.body.errors).toContainEqual({
+			field: "limit",
+			message: "Limit must not exceed 30",
+		});
+	});
+
+	it("should return 400 when page is less than 1", async () => {
+		const response = await request(app).get("/api/job-roles?limit=10&page=0");
+
+		expect(response.status).toBe(400);
+		expect(response.body.errors).toContainEqual({
+			field: "page",
+			message: "Page must be at least 1",
 		});
 	});
 
