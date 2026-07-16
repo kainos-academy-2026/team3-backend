@@ -98,6 +98,13 @@ router.patch(
 	validateBody(UpdateJobRoleRequestSchema),
 	jobRoleController.updateJobRole.bind(jobRoleController),
 );
+router.delete(
+	"/:id",
+	authenticate,
+	requireAdmin,
+	validateParams(JobRoleIdParamSchema),
+	jobRoleController.deleteJobRole.bind(jobRoleController),
+);
 router.post(
 	"/:id/apply",
 	authenticate,

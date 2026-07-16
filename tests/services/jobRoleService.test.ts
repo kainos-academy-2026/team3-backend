@@ -13,6 +13,7 @@ import {
 } from "../../src/dtos/jobRoleDto.js";
 import type { UpdateJobRoleRequestDto } from "../../src/dtos/updateJobRoleDto.js";
 import { InvalidJobRoleReferenceError } from "../../src/errors/InvalidJobRoleReferenceError.js";
+import { JobRoleHasApplicationsError } from "../../src/errors/JobRoleHasApplicationsError.js";
 import { JobRoleNotFoundError } from "../../src/errors/JobRoleNotFoundError.js";
 import type { JobRoleApplicationMapper } from "../../src/mappers/jobRoleApplicationMapper.js";
 import type { JobRoleMapper } from "../../src/mappers/jobRoleMapper.js";
@@ -28,6 +29,8 @@ const mockJobRoleDao = {
 	findCapabilityById: vi.fn(),
 	findBandById: vi.fn(),
 	updateJobRole: vi.fn(),
+	deleteJobRoleById: vi.fn(),
+	countApplicationsByJobRoleId: vi.fn(),
 	createApplication: vi.fn(),
 	findApplicationsByJobRoleId: vi.fn(),
 	hireApplication: vi.fn(),
@@ -73,6 +76,8 @@ describe("JobRoleService", () => {
 		| "findCapabilityById"
 		| "findBandById"
 		| "updateJobRole"
+		| "deleteJobRoleById"
+		| "countApplicationsByJobRoleId"
 		| "createApplication"
 		| "findApplicationsByJobRoleId"
 		| "hireApplication"
@@ -108,6 +113,8 @@ describe("JobRoleService", () => {
 			findCapabilityById: mockJobRoleDao.findCapabilityById,
 			findBandById: mockJobRoleDao.findBandById,
 			updateJobRole: mockJobRoleDao.updateJobRole,
+			deleteJobRoleById: mockJobRoleDao.deleteJobRoleById,
+			countApplicationsByJobRoleId: mockJobRoleDao.countApplicationsByJobRoleId,
 			createApplication: mockJobRoleDao.createApplication,
 			findApplicationsByJobRoleId: mockJobRoleDao.findApplicationsByJobRoleId,
 			hireApplication: mockJobRoleDao.hireApplication,
@@ -989,5 +996,41 @@ describe("JobRoleService", () => {
 		expect(jobRoleDao.updateJobRole).toHaveBeenCalledWith(1, {
 			closingDate: new Date("2026-09-01"),
 		});
+	});
+
+	it("should delete a job role when it exists and has no applications", async () => {
+		vi.mocked(jobRoleDao.findJobRoleById).mockResolvedValueOnce({
+			id: 1,
+		} as JobRoleWithRelations);
+		vi.mocked(jobRoleDao.countApplicationsByJobRoleId).mockResolvedValueOnce(0);
+		vi.mocked(jobRoleDao.deleteJobRoleById).mockResolvedValueOnce(undefined);
+
+		await service.deleteJobRole(1);
+
+		expect(jobRoleDao.findJobRoleById).toHaveBeenCalledWith(1);
+		expect(jobRoleDao.countApplicationsByJobRoleId).toHaveBeenCalledWith(1);
+		expect(jobRoleDao.deleteJobRoleById).toHaveBeenCalledWith(1);
+	});
+
+	it("should throw JobRoleNotFoundError when job role to delete is missing", async () => {
+		vi.mocked(jobRoleDao.findJobRoleById).mockResolvedValueOnce(null);
+
+		await expect(service.deleteJobRole(999)).rejects.toBeInstanceOf(
+			JobRoleNotFoundError,
+		);
+		expect(jobRoleDao.countApplicationsByJobRoleId).not.toHaveBeenCalled();
+		expect(jobRoleDao.deleteJobRoleById).not.toHaveBeenCalled();
+	});
+
+	it("should throw JobRoleHasApplicationsError when job role has existing applications", async () => {
+		vi.mocked(jobRoleDao.findJobRoleById).mockResolvedValueOnce({
+			id: 1,
+		} as JobRoleWithRelations);
+		vi.mocked(jobRoleDao.countApplicationsByJobRoleId).mockResolvedValueOnce(3);
+
+		await expect(service.deleteJobRole(1)).rejects.toBeInstanceOf(
+			JobRoleHasApplicationsError,
+		);
+		expect(jobRoleDao.deleteJobRoleById).not.toHaveBeenCalled();
 	});
 });

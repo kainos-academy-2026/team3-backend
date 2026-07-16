@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
 	findBandUnique: vi.fn(),
 	create: vi.fn(),
 	update: vi.fn(),
+	delete: vi.fn(),
 	applicationFindMany: vi.fn(),
 	applicationFindUnique: vi.fn(),
 	applicationUpdateMany: vi.fn(),
@@ -35,6 +36,7 @@ vi.mock("../../src/prismaClient.js", () => ({
 			create: mocks.jobRoleCreate,
 			update: mocks.update,
 			updateMany: mocks.jobRoleUpdateMany,
+			delete: mocks.delete,
 		},
 		capability: {
 			findUnique: mocks.findCapabilityUnique,
@@ -485,5 +487,24 @@ describe("JobRoleDao", () => {
 			data: { status: JobRoleApplicationStatusDto.Rejected },
 		});
 		expect(result.status).toBe(JobRoleApplicationStatusDto.Rejected);
+	});
+
+	it("should delete a job role by id", async () => {
+		mocks.delete.mockResolvedValueOnce(undefined);
+
+		const dao = new JobRoleDao();
+		await dao.deleteJobRoleById(1);
+
+		expect(mocks.delete).toHaveBeenCalledWith({
+			where: { id: 1 },
+		});
+	});
+
+	it("should throw when deleteJobRoleById fails", async () => {
+		mocks.delete.mockRejectedValueOnce(new Error("db down"));
+
+		const dao = new JobRoleDao();
+
+		await expect(dao.deleteJobRoleById(1)).rejects.toThrow("db down");
 	});
 });

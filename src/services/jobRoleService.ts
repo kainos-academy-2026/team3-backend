@@ -18,6 +18,7 @@ import type {
 import type { JobRoleMetadataResponseDto } from "../dtos/jobRoleMetadataDto.js";
 import type { UpdateJobRoleRequestDto } from "../dtos/updateJobRoleDto.js";
 import { InvalidJobRoleReferenceError } from "../errors/InvalidJobRoleReferenceError.js";
+import { JobRoleHasApplicationsError } from "../errors/JobRoleHasApplicationsError.js";
 import { JobRoleNotFoundError } from "../errors/JobRoleNotFoundError.js";
 import type { JobRoleApplicationMapper } from "../mappers/jobRoleApplicationMapper.js";
 import type { JobRoleMapper } from "../mappers/jobRoleMapper.js";
@@ -303,5 +304,31 @@ export class JobRoleService {
 		});
 
 		return this.jobRoleMapper.toDetailedResponse(updatedJobRole);
+	}
+
+	async deleteJobRole(id: number): Promise<void> {
+		const existingJobRole = await this.jobRoleDao.findJobRoleById(id);
+
+		if (!existingJobRole) {
+			throw new JobRoleNotFoundError(id);
+		}
+
+		const applicationCount =
+			await this.jobRoleDao.countApplicationsByJobRoleId(id);
+
+		if (applicationCount > 0) {
+			throw new JobRoleHasApplicationsError(id, applicationCount);
+		}
+
+		try {
+ 			await this.jobRoleDao.deleteJobRoleById(id);
+ 		} catch (error) {
+ 			// If the role disappeared between the existence check and the delete, respond as not-found.
+ 			const stillExists = await this.jobRoleDao.findJobRoleById(id);
+ 			if (!stillExists) {
+ 				throw new JobRoleNotFoundError(id);
+ 			}
+ 			throw error;
+ 		}
 	}
 }

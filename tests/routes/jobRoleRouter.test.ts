@@ -16,6 +16,7 @@ const mocks = vi.hoisted(() => ({
 	mockHireApplicant: vi.fn(),
 	mockRejectApplicant: vi.fn(),
 	mockVerifyToken: vi.fn(),
+	mockDeleteJobRole: vi.fn(),
 }));
 
 vi.mock("../../src/prismaClient.js", () => ({
@@ -47,6 +48,7 @@ vi.mock("../../src/services/jobRoleService.js", () => ({
 		getJobRoleApplicationsForAdmin = mocks.mockGetJobRoleApplicationsForAdmin;
 		hireApplicant = mocks.mockHireApplicant;
 		rejectApplicant = mocks.mockRejectApplicant;
+		deleteJobRole = mocks.mockDeleteJobRole;
 	},
 }));
 
@@ -875,5 +877,89 @@ describe("PATCH /api/job-roles/:id", () => {
 			roleName: "Updated Senior Backend Engineer",
 			status: "Closed",
 		});
+	});
+});
+
+describe("DELETE /api/job-roles/:id", () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+	});
+
+	it("should return 401 when authorization header is missing", async () => {
+		const response = await request(app).delete("/api/job-roles/1");
+
+		expect(response.status).toBe(401);
+		expect(response.body).toEqual({
+			error: "Missing or invalid authorization header",
+		});
+		expect(mocks.mockDeleteJobRole).not.toHaveBeenCalled();
+	});
+
+	it("should return 403 for authenticated non-admin user", async () => {
+		mocks.mockVerifyToken.mockResolvedValueOnce({
+			userId: 7,
+			email: "user@example.com",
+			role: "USER",
+		});
+
+		const response = await request(app)
+			.delete("/api/job-roles/1")
+			.set("Authorization", "Bearer valid-token");
+
+		expect(response.status).toBe(403);
+		expect(response.body).toEqual({ error: "Forbidden" });
+		expect(mocks.mockDeleteJobRole).not.toHaveBeenCalled();
+	});
+
+	it("should return 400 for invalid route id", async () => {
+		mocks.mockVerifyToken.mockResolvedValueOnce({
+			userId: 1,
+			email: "admin@example.com",
+			role: "ADMIN",
+		});
+
+		const response = await request(app)
+			.delete("/api/job-roles/not-a-number")
+			.set("Authorization", "Bearer valid-token");
+
+		expect(response.status).toBe(400);
+		expect(response.body.errors).toHaveLength(1);
+		expect(response.body.errors[0]).toMatchObject({ field: "id" });
+		expect(mocks.mockDeleteJobRole).not.toHaveBeenCalled();
+	});
+
+	it("should return 404 when the target job role does not exist", async () => {
+		mocks.mockVerifyToken.mockResolvedValueOnce({
+			userId: 1,
+			email: "admin@example.com",
+			role: "ADMIN",
+		});
+		mocks.mockDeleteJobRole.mockRejectedValueOnce(new JobRoleNotFoundError(1));
+
+		const response = await request(app)
+			.delete("/api/job-roles/1")
+			.set("Authorization", "Bearer valid-token");
+
+		expect(response.status).toBe(404);
+		expect(response.body).toEqual({
+			error: "Job role with id 1 was not found",
+		});
+	});
+
+	it("should return 204 for admin happy path", async () => {
+		mocks.mockVerifyToken.mockResolvedValueOnce({
+			userId: 1,
+			email: "admin@example.com",
+			role: "ADMIN",
+		});
+		mocks.mockDeleteJobRole.mockResolvedValueOnce(undefined);
+
+		const response = await request(app)
+			.delete("/api/job-roles/1")
+			.set("Authorization", "Bearer valid-token");
+
+		expect(response.status).toBe(204);
+		expect(response.body).toEqual({});
+		expect(mocks.mockDeleteJobRole).toHaveBeenCalledWith(1);
 	});
 });
