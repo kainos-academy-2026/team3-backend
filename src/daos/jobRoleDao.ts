@@ -3,24 +3,12 @@ import {
 	JobRoleApplicationStatusDto,
 	JobRoleStatusDto,
 } from "../dtos/jobRoleDto.js";
+import type { UpdateJobRoleData } from "../models/updateJobRoleData.js";
 import prisma from "../prismaClient.js";
 
 export type JobRoleWithRelations = Prisma.JobRoleGetPayload<{
 	include: { capability: true; band: true };
 }>;
-
-export interface UpdateJobRoleData {
-	roleName?: string;
-	location?: string;
-	capabilityId?: number;
-	bandId?: number;
-	closingDate?: Date;
-	status?: JobRoleStatusDto;
-	description?: string;
-	responsibilities?: string;
-	sharepointUrl?: string;
-	numberOfOpenPositions?: number;
-}
 
 export class JobRoleDao {
 	async findAllJobRoles(): Promise<JobRoleWithRelations[]> {

@@ -6,8 +6,8 @@ import { JobRoleDao } from "../daos/jobRoleDao.js";
 import {
 	CreateJobRoleRequestSchema,
 	JobRoleIdParamSchema,
-	UpdateJobRoleRequestSchema,
 } from "../dtos/jobRoleDto.js";
+import { UpdateJobRoleRequestSchema } from "../dtos/updateJobRoleDto.js";
 import { JobRoleMapper } from "../mappers/jobRoleMapper.js";
 import { authenticate, requireAdmin } from "../middleware/auth.js";
 import { validateBody, validateParams } from "../middleware/validate.js";

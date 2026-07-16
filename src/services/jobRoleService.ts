@@ -6,9 +6,9 @@ import type {
 	JobRoleApplicationResponseDto,
 	JobRoleDetailedResponseDto,
 	JobRoleResponseDto,
-	UpdateJobRoleRequestDto,
 } from "../dtos/jobRoleDto.js";
 import type { JobRoleMetadataResponseDto } from "../dtos/jobRoleMetadataDto.js";
+import type { UpdateJobRoleRequestDto } from "../dtos/updateJobRoleDto.js";
 import { InvalidJobRoleReferenceError } from "../errors/InvalidJobRoleReferenceError.js";
 import { JobRoleNotFoundError } from "../errors/JobRoleNotFoundError.js";
 import type { JobRoleMapper } from "../mappers/jobRoleMapper.js";

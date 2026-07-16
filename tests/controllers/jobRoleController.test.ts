@@ -4,9 +4,9 @@ import { JobRoleController } from "../../src/controllers/jobRoleController.js";
 import {
 	type JobRoleResponseDto,
 	JobRoleStatusDto,
-	type UpdateJobRoleRequestDto,
 } from "../../src/dtos/jobRoleDto.js";
 import type { JobRoleMetadataResponseDto } from "../../src/dtos/jobRoleMetadataDto.js";
+import type { UpdateJobRoleRequestDto } from "../../src/dtos/updateJobRoleDto.js";
 import { InvalidJobRoleReferenceError } from "../../src/errors/InvalidJobRoleReferenceError.js";
 import { JobRoleNotFoundError } from "../../src/errors/JobRoleNotFoundError.js";
 import type { JobRoleService } from "../../src/services/jobRoleService.js";

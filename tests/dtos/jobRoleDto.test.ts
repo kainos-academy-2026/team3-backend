@@ -1,8 +1,6 @@
 import { describe, expect, it } from "vitest";
-import {
-	JobRoleStatusDto,
-	UpdateJobRoleRequestSchema,
-} from "../../src/dtos/jobRoleDto.js";
+import { JobRoleStatusDto } from "../../src/dtos/jobRoleDto.js";
+import { UpdateJobRoleRequestSchema } from "../../src/dtos/updateJobRoleDto.js";
 
 describe("JobRoleStatusDto", () => {
 	it("has the expected Open value", () => {
