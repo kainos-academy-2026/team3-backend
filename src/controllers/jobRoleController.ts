@@ -120,11 +120,7 @@ export class JobRoleController {
 				error instanceof JobRoleNotFoundError ||
 				error instanceof InvalidJobRoleReferenceError
 			) {
-				if (error instanceof JobRoleNotFoundError) {
-					res.status(404).json({ error: error.message });
-				} else {
-					res.status(400).json({ error: error.message });
-				}
+				res.status(404).json({ error: error.message });
 				return;
 			}
 

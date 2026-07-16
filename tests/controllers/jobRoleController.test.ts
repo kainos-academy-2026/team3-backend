@@ -308,44 +308,43 @@ describe("JobRoleController", () => {
 	});
 
 	it("should return 201 when createJobRole succeeds", async () => {
-        const payload = {
-            roleName: "Senior Backend Engineer",
-            location: "Dublin",
-            capabilityId: 1,
-            bandId: 2,
-            closingDate: "2026-08-31",
-            description: "Own backend services and integrations.",
-            responsibilities: "Build APIs, review code, support delivery.",
-            sharepointUrl: "https://example.sharepoint.com/job-role",
-            numberOfOpenPositions: 2,
-        };
- 
-        const createdJobRole = {
-            id: 10,
-            ...payload,
-            capability: {
-                capabilityId: 1,
-                capabilityName: "Engineering",
-            },
-            band: {
-                bandId: 2,
-                bandName: "Band 2",
-            },
-            status: JobRoleStatusDto.Open,
-        };
- 
-        req = { body: payload } as Request;
-        vi.mocked(jobRoleService.createJobRole).mockResolvedValueOnce(
-            createdJobRole,
-        );
- 
-        await controller.createJobRole(req, res);
- 
-        expect(jobRoleService.createJobRole).toHaveBeenCalledWith(payload);
-        expect(res.status).toHaveBeenCalledWith(201);
-        expect(res.json).toHaveBeenCalledWith(createdJobRole);
-    });
+		const payload = {
+			roleName: "Senior Backend Engineer",
+			location: "Dublin",
+			capabilityId: 1,
+			bandId: 2,
+			closingDate: "2026-08-31",
+			description: "Own backend services and integrations.",
+			responsibilities: "Build APIs, review code, support delivery.",
+			sharepointUrl: "https://example.sharepoint.com/job-role",
+			numberOfOpenPositions: 2,
+		};
 
+		const createdJobRole = {
+			id: 10,
+			...payload,
+			capability: {
+				capabilityId: 1,
+				capabilityName: "Engineering",
+			},
+			band: {
+				bandId: 2,
+				bandName: "Band 2",
+			},
+			status: JobRoleStatusDto.Open,
+		};
+
+		req = { body: payload } as Request;
+		vi.mocked(jobRoleService.createJobRole).mockResolvedValueOnce(
+			createdJobRole,
+		);
+
+		await controller.createJobRole(req, res);
+
+		expect(jobRoleService.createJobRole).toHaveBeenCalledWith(payload);
+		expect(res.status).toHaveBeenCalledWith(201);
+		expect(res.json).toHaveBeenCalledWith(createdJobRole);
+	});
 
 	it("should return 200 with updated job role", async () => {
 		const updatePayload: UpdateJobRoleRequestDto = {

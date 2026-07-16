@@ -4,9 +4,9 @@ import { BandDao } from "../daos/bandDao.js";
 import { CapabilityDao } from "../daos/capabilityDao.js";
 import { JobRoleDao } from "../daos/jobRoleDao.js";
 import {
+	CreateJobRoleRequestSchema,
 	JobRoleIdParamSchema,
 	UpdateJobRoleRequestSchema,
-	CreateJobRoleRequestSchema,
 } from "../dtos/jobRoleDto.js";
 import { JobRoleMapper } from "../mappers/jobRoleMapper.js";
 import { authenticate, requireAdmin } from "../middleware/auth.js";
