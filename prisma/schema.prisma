@@ -54,7 +54,7 @@ model Application {
   id        Int      @id @default(autoincrement())
   user      User     @relation("ApplicationUser", fields: [userId], references: [id])
   userId    Int
-  jobRole   JobRole  @relation(fields: [jobRoleId], references: [id])
+  jobRole   JobRole  @relation(fields: [jobRoleId], references: [id], onDelete: Cascade)
   jobRoleId Int
   cvUrl     String
   status    String
