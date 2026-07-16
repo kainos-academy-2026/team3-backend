@@ -321,14 +321,14 @@ export class JobRoleService {
 		}
 
 		try {
- 			await this.jobRoleDao.deleteJobRoleById(id);
- 		} catch (error) {
- 			// If the role disappeared between the existence check and the delete, respond as not-found.
- 			const stillExists = await this.jobRoleDao.findJobRoleById(id);
- 			if (!stillExists) {
- 				throw new JobRoleNotFoundError(id);
- 			}
- 			throw error;
- 		}
+			await this.jobRoleDao.deleteJobRoleById(id);
+		} catch (error) {
+			// If the role disappeared between the existence check and the delete, respond as not-found.
+			const stillExists = await this.jobRoleDao.findJobRoleById(id);
+			if (!stillExists) {
+				throw new JobRoleNotFoundError(id);
+			}
+			throw error;
+		}
 	}
 }
