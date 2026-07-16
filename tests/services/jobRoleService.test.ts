@@ -8,6 +8,7 @@ import type {
 import type { CreateJobRoleRequestDto } from "../../src/dtos/createJobRoleDto.js";
 import {
 	type JobRoleResponseDto,
+	JobRoleApplicationStatusDto,
 	JobRoleStatusDto,
 } from "../../src/dtos/jobRoleDto.js";
 import type { UpdateJobRoleRequestDto } from "../../src/dtos/updateJobRoleDto.js";
@@ -25,6 +26,9 @@ const mockJobRoleDao = {
 	findBandById: vi.fn(),
 	updateJobRole: vi.fn(),
 	createApplication: vi.fn(),
+	findApplicationsByJobRoleId: vi.fn(),
+	hireApplication: vi.fn(),
+	rejectApplication: vi.fn(),
 };
 
 const mockCapabilityDao = {
@@ -44,6 +48,7 @@ const mockMapper = {
 
 const mockS3Service = {
 	getPresignedUploadUrl: vi.fn(),
+	getPresignedDownloadUrl: vi.fn(),
 };
 
 describe("JobRoleService", () => {
@@ -57,6 +62,9 @@ describe("JobRoleService", () => {
 		| "findBandById"
 		| "updateJobRole"
 		| "createApplication"
+		| "findApplicationsByJobRoleId"
+		| "hireApplication"
+		| "rejectApplication"
 	>;
 	let capabilityDao: Pick<
 		CapabilityDao,
@@ -64,7 +72,10 @@ describe("JobRoleService", () => {
 	>;
 	let bandDao: Pick<BandDao, "findAllBands" | "findBandById">;
 	let jobRoleMapper: Pick<JobRoleMapper, "toResponse" | "toDetailedResponse">;
-	let s3Service: Pick<S3Service, "getPresignedUploadUrl">;
+	let s3Service: Pick<
+		S3Service,
+		"getPresignedUploadUrl" | "getPresignedDownloadUrl"
+	>;
 
 	beforeEach(() => {
 		vi.clearAllMocks();
@@ -77,6 +88,9 @@ describe("JobRoleService", () => {
 			findBandById: mockJobRoleDao.findBandById,
 			updateJobRole: mockJobRoleDao.updateJobRole,
 			createApplication: mockJobRoleDao.createApplication,
+			findApplicationsByJobRoleId: mockJobRoleDao.findApplicationsByJobRoleId,
+			hireApplication: mockJobRoleDao.hireApplication,
+			rejectApplication: mockJobRoleDao.rejectApplication,
 		};
 
 		capabilityDao = {
@@ -96,6 +110,7 @@ describe("JobRoleService", () => {
 
 		s3Service = {
 			getPresignedUploadUrl: mockS3Service.getPresignedUploadUrl,
+			getPresignedDownloadUrl: mockS3Service.getPresignedDownloadUrl,
 		};
 
 		service = new JobRoleService(
@@ -105,6 +120,138 @@ describe("JobRoleService", () => {
 			jobRoleMapper as JobRoleMapper,
 			s3Service as S3Service,
 		);
+	});
+
+	it("should return admin application data with presigned download urls", async () => {
+		vi.mocked(jobRoleDao.findJobRoleById).mockResolvedValueOnce({
+			id: 1,
+			roleName: "Backend Engineer",
+			location: "Dublin",
+			capabilityId: 10,
+			bandId: 3,
+			closingDate: new Date("2026-08-31"),
+			status: "Open",
+			description: "Backend role description",
+			responsibilities: "Build APIs",
+			sharepointUrl: "https://example.com/backend",
+			numberOfOpenPositions: 2,
+			capability: {
+				capabilityId: 10,
+				capabilityName: "Engineering",
+			},
+			band: {
+				bandId: 3,
+				bandName: "Band 3",
+			},
+		} as JobRoleWithRelations);
+		vi.mocked(jobRoleDao.findApplicationsByJobRoleId).mockResolvedValueOnce([
+			{
+				id: 101,
+				userId: 7,
+				jobRoleId: 1,
+				cvUrl: "job-applications/1/7/abc-cv.pdf",
+				status: JobRoleApplicationStatusDto.InProgress,
+				appliedAt: new Date("2026-07-01T12:00:00.000Z"),
+				user: {
+					id: 7,
+					email: "candidate@example.com",
+				},
+			},
+		] as never);
+		vi.mocked(s3Service.getPresignedDownloadUrl).mockResolvedValueOnce(
+			"https://example.com/download",
+		);
+
+		const result = await service.getJobRoleApplicationsForAdmin(1);
+
+		expect(jobRoleDao.findJobRoleById).toHaveBeenCalledWith(1);
+		expect(jobRoleDao.findApplicationsByJobRoleId).toHaveBeenCalledWith(1);
+		expect(s3Service.getPresignedDownloadUrl).toHaveBeenCalledWith(
+			"job-applications/1/7/abc-cv.pdf",
+		);
+		expect(result).toEqual({
+			jobRoleId: 1,
+			roleName: "Backend Engineer",
+			numberOfOpenPositions: 2,
+			applicants: [
+				{
+					applicationId: 101,
+					userId: 7,
+					username: "candidate@example.com",
+					status: JobRoleApplicationStatusDto.InProgress,
+					appliedAt: "2026-07-01T12:00:00.000Z",
+					cvDownloadUrl: "https://example.com/download",
+				},
+			],
+		});
+	});
+
+	it("should hire an applicant and return updated positions", async () => {
+		vi.mocked(jobRoleDao.hireApplication).mockResolvedValueOnce({
+			application: {
+				id: 101,
+				userId: 7,
+				jobRoleId: 1,
+				cvUrl: "job-applications/1/7/abc-cv.pdf",
+				status: JobRoleApplicationStatusDto.Hired,
+				appliedAt: new Date("2026-07-01T12:00:00.000Z"),
+				user: {
+					id: 7,
+					email: "candidate@example.com",
+				},
+			},
+			numberOfOpenPositions: 1,
+		});
+		vi.mocked(s3Service.getPresignedDownloadUrl).mockResolvedValueOnce(
+			"https://example.com/download",
+		);
+
+		const result = await service.hireApplicant(1, 101);
+
+		expect(jobRoleDao.hireApplication).toHaveBeenCalledWith(1, 101);
+		expect(result).toEqual({
+			application: {
+				applicationId: 101,
+				userId: 7,
+				username: "candidate@example.com",
+				status: JobRoleApplicationStatusDto.Hired,
+				appliedAt: "2026-07-01T12:00:00.000Z",
+				cvDownloadUrl: "https://example.com/download",
+			},
+			numberOfOpenPositions: 1,
+		});
+	});
+
+	it("should reject an applicant and return the updated application", async () => {
+		vi.mocked(jobRoleDao.rejectApplication).mockResolvedValueOnce({
+			id: 101,
+			userId: 7,
+			jobRoleId: 1,
+			cvUrl: "job-applications/1/7/abc-cv.pdf",
+			status: JobRoleApplicationStatusDto.Rejected,
+			appliedAt: new Date("2026-07-01T12:00:00.000Z"),
+			user: {
+				id: 7,
+				email: "candidate@example.com",
+			},
+		});
+		vi.mocked(s3Service.getPresignedDownloadUrl).mockResolvedValueOnce(
+			"https://example.com/download",
+		);
+
+		const result = await service.rejectApplicant(1, 101);
+
+		expect(jobRoleDao.rejectApplication).toHaveBeenCalledWith(1, 101);
+		expect(result).toEqual({
+			application: {
+				applicationId: 101,
+				userId: 7,
+				username: "candidate@example.com",
+				status: JobRoleApplicationStatusDto.Rejected,
+				appliedAt: "2026-07-01T12:00:00.000Z",
+				cvDownloadUrl: "https://example.com/download",
+			},
+		});
 	});
 
 	it("should return mapped metadata from dao data", async () => {

@@ -1,8 +1,15 @@
 import type { BandDao } from "../daos/bandDao.js";
 import type { CapabilityDao } from "../daos/capabilityDao.js";
-import type { JobRoleDao } from "../daos/jobRoleDao.js";
+import type {
+	JobRoleApplicationWithUser,
+	JobRoleDao,
+} from "../daos/jobRoleDao.js";
 import type { CreateJobRoleRequestDto } from "../dtos/createJobRoleDto.js";
 import type {
+	JobRoleApplicationHireResponseDto,
+	JobRoleApplicationRejectResponseDto,
+	JobRoleApplicationSummaryDto,
+	JobRoleApplicationsAdminResponseDto,
 	JobRoleApplicationResponseDto,
 	JobRoleDetailedResponseDto,
 	JobRoleResponseDto,
@@ -147,6 +154,74 @@ export class JobRoleService {
 		);
 		await this.jobRoleDao.createApplication(userId, jobRoleId, key);
 		return { uploadUrl, key };
+	}
+
+	private async toApplicationSummary(
+		application: JobRoleApplicationWithUser,
+	): Promise<JobRoleApplicationSummaryDto> {
+		return {
+			applicationId: application.id,
+			userId: application.userId,
+			username: application.user.email,
+			status: application.status,
+			appliedAt: application.appliedAt.toISOString(),
+			cvDownloadUrl: await this.s3Service.getPresignedDownloadUrl(
+				application.cvUrl,
+			),
+		};
+	}
+
+	async getJobRoleApplicationsForAdmin(
+		jobRoleId: number,
+	): Promise<JobRoleApplicationsAdminResponseDto> {
+		const jobRole = await this.jobRoleDao.findJobRoleById(jobRoleId);
+
+		if (!jobRole) {
+			throw new JobRoleNotFoundError(jobRoleId);
+		}
+
+		const applications =
+			await this.jobRoleDao.findApplicationsByJobRoleId(jobRoleId);
+
+		return {
+			jobRoleId: jobRole.id,
+			roleName: jobRole.roleName,
+			numberOfOpenPositions: jobRole.numberOfOpenPositions,
+			applicants: await Promise.all(
+				applications.map((application) =>
+					this.toApplicationSummary(application),
+				),
+			),
+		};
+	}
+
+	async hireApplicant(
+		jobRoleId: number,
+		applicationId: number,
+	): Promise<JobRoleApplicationHireResponseDto> {
+		const result = await this.jobRoleDao.hireApplication(
+			jobRoleId,
+			applicationId,
+		);
+
+		return {
+			application: await this.toApplicationSummary(result.application),
+			numberOfOpenPositions: result.numberOfOpenPositions,
+		};
+	}
+
+	async rejectApplicant(
+		jobRoleId: number,
+		applicationId: number,
+	): Promise<JobRoleApplicationRejectResponseDto> {
+		const application = await this.jobRoleDao.rejectApplication(
+			jobRoleId,
+			applicationId,
+		);
+
+		return {
+			application: await this.toApplicationSummary(application),
+		};
 	}
 
 	async updateJobRole(

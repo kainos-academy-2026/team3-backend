@@ -41,6 +41,8 @@ export interface JobRoleDetailedResponseDto {
 
 export enum JobRoleApplicationStatusDto {
 	InProgress = "In Progress",
+	Hired = "Hired",
+	Rejected = "Rejected",
 }
 
 export interface JobRoleApplicationRequestDto {
@@ -54,8 +56,48 @@ export interface JobRoleApplicationResponseDto {
 	key: string;
 }
 
+export interface JobRoleApplicationSummaryDto {
+	applicationId: number;
+	userId: number;
+	username: string;
+	status: JobRoleApplicationStatusDto;
+	appliedAt: string;
+	cvDownloadUrl: string;
+}
+
+export interface JobRoleApplicationsAdminResponseDto {
+	jobRoleId: number;
+	roleName: string;
+	numberOfOpenPositions: number;
+	applicants: JobRoleApplicationSummaryDto[];
+}
+
+export interface JobRoleApplicationHireResponseDto {
+	application: JobRoleApplicationSummaryDto;
+	numberOfOpenPositions: number;
+}
+
+export interface JobRoleApplicationRejectResponseDto {
+	application: JobRoleApplicationSummaryDto;
+}
+
 export const JobRoleIdParamSchema = z.object({
 	id: z.coerce.number().int().positive("ID must be a positive integer"),
+});
+
+export const JobRoleApplicationIdParamSchema = z.object({
+	applicationId: z.coerce
+		.number()
+		.int()
+		.positive("Application ID must be a positive integer"),
+});
+
+export const JobRoleApplicationActionParamsSchema = z.object({
+	id: z.coerce.number().int().positive("ID must be a positive integer"),
+	applicationId: z.coerce
+		.number()
+		.int()
+		.positive("Application ID must be a positive integer"),
 });
 
 export const CreateJobRoleRequestSchema = z.object({

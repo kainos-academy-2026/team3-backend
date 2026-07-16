@@ -5,19 +5,34 @@ const mocks = vi.hoisted(() => ({
 	findMany: vi.fn(),
 	findUnique: vi.fn(),
 	jobRoleCreate: vi.fn(),
+	jobRoleUpdateMany: vi.fn(),
 	findCapabilityUnique: vi.fn(),
 	findBandUnique: vi.fn(),
 	create: vi.fn(),
 	update: vi.fn(),
+	applicationFindMany: vi.fn(),
+	applicationFindUnique: vi.fn(),
+	applicationUpdateMany: vi.fn(),
+	transaction: vi.fn(),
+}));
+
+const transactionMocks = vi.hoisted(() => ({
+	jobRoleFindUnique: vi.fn(),
+	jobRoleUpdateMany: vi.fn(),
+	applicationFindUnique: vi.fn(),
+	applicationUpdateMany: vi.fn(),
+	applicationFindMany: vi.fn(),
 }));
 
 vi.mock("../../src/prismaClient.js", () => ({
 	default: {
+		$transaction: mocks.transaction,
 		jobRole: {
 			findMany: mocks.findMany,
 			findUnique: mocks.findUnique,
 			create: mocks.jobRoleCreate,
 			update: mocks.update,
+			updateMany: mocks.jobRoleUpdateMany,
 		},
 		capability: {
 			findUnique: mocks.findCapabilityUnique,
@@ -27,6 +42,9 @@ vi.mock("../../src/prismaClient.js", () => ({
 		},
 		application: {
 			create: mocks.create,
+			findMany: mocks.applicationFindMany,
+			findUnique: mocks.applicationFindUnique,
+			updateMany: mocks.applicationUpdateMany,
 		},
 	},
 }));
@@ -36,10 +54,24 @@ import {
 	JobRoleApplicationStatusDto,
 	JobRoleStatusDto,
 } from "../../src/dtos/jobRoleDto.js";
+import { InvalidJobRoleApplicationStatusError } from "../../src/errors/InvalidJobRoleApplicationStatusError.js";
 
 describe("JobRoleDao", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		mocks.transaction.mockImplementation(async (callback) =>
+			callback({
+				jobRole: {
+					findUnique: transactionMocks.jobRoleFindUnique,
+					updateMany: transactionMocks.jobRoleUpdateMany,
+				},
+				application: {
+					findUnique: transactionMocks.applicationFindUnique,
+					updateMany: transactionMocks.applicationUpdateMany,
+					findMany: transactionMocks.applicationFindMany,
+				},
+			} as never),
+		);
 	});
 
 	it("should return all job roles with relations", async () => {
@@ -253,5 +285,156 @@ describe("JobRoleDao", () => {
 		await expect(
 			dao.createApplication(7, 2, "job-applications/2/7/123-cv.pdf"),
 		).rejects.toThrow("db down");
+	});
+
+	it("should return applications for a job role ordered by most recent first", async () => {
+		const rows = [
+			{
+				id: 2,
+				userId: 8,
+				jobRoleId: 1,
+				cvUrl: "job-applications/1/8/cv.pdf",
+				status: JobRoleApplicationStatusDto.InProgress,
+				appliedAt: new Date("2026-07-02T12:00:00.000Z"),
+				user: { id: 8, email: "second@example.com" },
+			},
+		];
+
+		mocks.applicationFindMany.mockResolvedValueOnce(rows);
+
+		const dao = new JobRoleDao();
+		const result = await dao.findApplicationsByJobRoleId(1);
+
+		expect(mocks.applicationFindMany).toHaveBeenCalledWith({
+			where: { jobRoleId: 1 },
+			include: {
+				user: {
+					select: {
+						id: true,
+						email: true,
+					},
+				},
+			},
+			orderBy: {
+				appliedAt: "desc",
+			},
+		});
+		expect(result).toEqual(rows);
+	});
+
+	it("should hire an application inside a transaction and decrement open positions", async () => {
+		transactionMocks.jobRoleFindUnique.mockResolvedValueOnce({
+			id: 1,
+			numberOfOpenPositions: 2,
+		});
+		transactionMocks.applicationFindUnique.mockResolvedValueOnce({
+			id: 101,
+			userId: 7,
+			jobRoleId: 1,
+			cvUrl: "job-applications/1/7/cv.pdf",
+			status: JobRoleApplicationStatusDto.InProgress,
+			appliedAt: new Date("2026-07-01T12:00:00.000Z"),
+			user: { id: 7, email: "candidate@example.com" },
+		});
+		transactionMocks.jobRoleUpdateMany.mockResolvedValueOnce({ count: 1 });
+		transactionMocks.applicationUpdateMany.mockResolvedValueOnce({ count: 1 });
+		transactionMocks.applicationFindUnique.mockResolvedValueOnce({
+			id: 101,
+			userId: 7,
+			jobRoleId: 1,
+			cvUrl: "job-applications/1/7/cv.pdf",
+			status: JobRoleApplicationStatusDto.Hired,
+			appliedAt: new Date("2026-07-01T12:00:00.000Z"),
+			user: { id: 7, email: "candidate@example.com" },
+		});
+
+		const dao = new JobRoleDao();
+		const result = await dao.hireApplication(1, 101);
+
+		expect(mocks.transaction).toHaveBeenCalledTimes(1);
+		expect(transactionMocks.jobRoleUpdateMany).toHaveBeenCalledWith({
+			where: { id: 1, numberOfOpenPositions: { gt: 0 } },
+			data: { numberOfOpenPositions: { decrement: 1 } },
+		});
+		expect(transactionMocks.applicationUpdateMany).toHaveBeenCalledWith({
+			where: {
+				id: 101,
+				jobRoleId: 1,
+				status: JobRoleApplicationStatusDto.InProgress,
+			},
+			data: { status: JobRoleApplicationStatusDto.Hired },
+		});
+		expect(result).toEqual({
+			application: {
+				id: 101,
+				userId: 7,
+				jobRoleId: 1,
+				cvUrl: "job-applications/1/7/cv.pdf",
+				status: JobRoleApplicationStatusDto.Hired,
+				appliedAt: new Date("2026-07-01T12:00:00.000Z"),
+				user: { id: 7, email: "candidate@example.com" },
+			},
+			numberOfOpenPositions: 1,
+		});
+	});
+
+	it("should reject a hire when the application is not in progress", async () => {
+		transactionMocks.jobRoleFindUnique.mockResolvedValueOnce({
+			id: 1,
+			numberOfOpenPositions: 2,
+		});
+		transactionMocks.applicationFindUnique.mockResolvedValueOnce({
+			id: 101,
+			userId: 7,
+			jobRoleId: 1,
+			cvUrl: "job-applications/1/7/cv.pdf",
+			status: JobRoleApplicationStatusDto.Rejected,
+			appliedAt: new Date("2026-07-01T12:00:00.000Z"),
+			user: { id: 7, email: "candidate@example.com" },
+		});
+
+		const dao = new JobRoleDao();
+
+		await expect(dao.hireApplication(1, 101)).rejects.toBeInstanceOf(
+			InvalidJobRoleApplicationStatusError,
+		);
+		expect(transactionMocks.jobRoleUpdateMany).not.toHaveBeenCalled();
+		expect(transactionMocks.applicationUpdateMany).not.toHaveBeenCalled();
+	});
+
+	it("should reject an application inside a transaction without changing open positions", async () => {
+		transactionMocks.applicationFindUnique.mockResolvedValueOnce({
+			id: 101,
+			userId: 7,
+			jobRoleId: 1,
+			cvUrl: "job-applications/1/7/cv.pdf",
+			status: JobRoleApplicationStatusDto.InProgress,
+			appliedAt: new Date("2026-07-01T12:00:00.000Z"),
+			user: { id: 7, email: "candidate@example.com" },
+		});
+		transactionMocks.applicationUpdateMany.mockResolvedValueOnce({ count: 1 });
+		transactionMocks.applicationFindUnique.mockResolvedValueOnce({
+			id: 101,
+			userId: 7,
+			jobRoleId: 1,
+			cvUrl: "job-applications/1/7/cv.pdf",
+			status: JobRoleApplicationStatusDto.Rejected,
+			appliedAt: new Date("2026-07-01T12:00:00.000Z"),
+			user: { id: 7, email: "candidate@example.com" },
+		});
+
+		const dao = new JobRoleDao();
+		const result = await dao.rejectApplication(1, 101);
+
+		expect(transactionMocks.jobRoleUpdateMany).not.toHaveBeenCalled();
+		expect(transactionMocks.applicationUpdateMany).toHaveBeenCalledWith({
+			where: {
+				id: 101,
+				jobRoleId: 1,
+				status: JobRoleApplicationStatusDto.InProgress,
+			},
+			data: { status: JobRoleApplicationStatusDto.Rejected },
+		});
+		expect(result.status).toBe(JobRoleApplicationStatusDto.Rejected);
 	});
 });

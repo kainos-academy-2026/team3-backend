@@ -3,11 +3,18 @@ import {
 	JobRoleApplicationStatusDto,
 	JobRoleStatusDto,
 } from "../dtos/jobRoleDto.js";
+import { InvalidJobRoleApplicationStatusError } from "../errors/InvalidJobRoleApplicationStatusError.js";
+import { JobRoleApplicationNotFoundError } from "../errors/JobRoleApplicationNotFoundError.js";
+import { JobRoleHasNoOpenPositionsError } from "../errors/JobRoleHasNoOpenPositionsError.js";
 import type { UpdateJobRoleData } from "../models/updateJobRoleData.js";
 import prisma from "../prismaClient.js";
 
 export type JobRoleWithRelations = Prisma.JobRoleGetPayload<{
 	include: { capability: true; band: true };
+}>;
+
+export type JobRoleApplicationWithUser = Prisma.ApplicationGetPayload<{
+	include: { user: { select: { id: true; email: true } } };
 }>;
 
 export class JobRoleDao {
@@ -91,6 +98,189 @@ export class JobRoleDao {
 				cvUrl,
 				status: JobRoleApplicationStatusDto.InProgress,
 			},
+		});
+	}
+
+	async findApplicationsByJobRoleId(
+		jobRoleId: number,
+	): Promise<JobRoleApplicationWithUser[]> {
+		return prisma.application.findMany({
+			where: { jobRoleId },
+			include: {
+				user: {
+					select: {
+						id: true,
+						email: true,
+					},
+				},
+			},
+			orderBy: {
+				appliedAt: "desc",
+			},
+		});
+	}
+
+	async hireApplication(
+		jobRoleId: number,
+		applicationId: number,
+	): Promise<{
+		application: JobRoleApplicationWithUser;
+		numberOfOpenPositions: number;
+	}> {
+		return prisma.$transaction(async (transaction) => {
+			const jobRole = await transaction.jobRole.findUnique({
+				where: { id: jobRoleId },
+				select: {
+					id: true,
+					numberOfOpenPositions: true,
+				},
+			});
+
+			if (!jobRole) {
+				throw new JobRoleApplicationNotFoundError(jobRoleId, applicationId);
+			}
+
+			const application = await transaction.application.findUnique({
+				where: { id: applicationId },
+				include: {
+					user: {
+						select: {
+							id: true,
+							email: true,
+						},
+					},
+				},
+			});
+
+			if (!application || application.jobRoleId !== jobRoleId) {
+				throw new JobRoleApplicationNotFoundError(jobRoleId, applicationId);
+			}
+
+			if (application.status !== JobRoleApplicationStatusDto.InProgress) {
+				throw new InvalidJobRoleApplicationStatusError(
+					applicationId,
+					application.status,
+				);
+			}
+
+			const jobRoleUpdate = await transaction.jobRole.updateMany({
+				where: {
+					id: jobRoleId,
+					numberOfOpenPositions: { gt: 0 },
+				},
+				data: {
+					numberOfOpenPositions: { decrement: 1 },
+				},
+			});
+
+			if (jobRoleUpdate.count !== 1) {
+				throw new JobRoleHasNoOpenPositionsError(jobRoleId);
+			}
+
+			const applicationUpdate = await transaction.application.updateMany({
+				where: {
+					id: applicationId,
+					jobRoleId,
+					status: JobRoleApplicationStatusDto.InProgress,
+				},
+				data: {
+					status: JobRoleApplicationStatusDto.Hired,
+				},
+			});
+
+			if (applicationUpdate.count !== 1) {
+				throw new InvalidJobRoleApplicationStatusError(
+					applicationId,
+					application.status,
+				);
+			}
+
+			const updatedApplication = await transaction.application.findUnique({
+				where: { id: applicationId },
+				include: {
+					user: {
+						select: {
+							id: true,
+							email: true,
+						},
+					},
+				},
+			});
+
+			if (!updatedApplication) {
+				throw new JobRoleApplicationNotFoundError(jobRoleId, applicationId);
+			}
+
+			return {
+				application: updatedApplication,
+				numberOfOpenPositions: jobRole.numberOfOpenPositions - 1,
+			};
+		});
+	}
+
+	async rejectApplication(
+		jobRoleId: number,
+		applicationId: number,
+	): Promise<JobRoleApplicationWithUser> {
+		return prisma.$transaction(async (transaction) => {
+			const application = await transaction.application.findUnique({
+				where: { id: applicationId },
+				include: {
+					user: {
+						select: {
+							id: true,
+							email: true,
+						},
+					},
+				},
+			});
+
+			if (!application || application.jobRoleId !== jobRoleId) {
+				throw new JobRoleApplicationNotFoundError(jobRoleId, applicationId);
+			}
+
+			if (application.status !== JobRoleApplicationStatusDto.InProgress) {
+				throw new InvalidJobRoleApplicationStatusError(
+					applicationId,
+					application.status,
+				);
+			}
+
+			const updateResult = await transaction.application.updateMany({
+				where: {
+					id: applicationId,
+					jobRoleId,
+					status: JobRoleApplicationStatusDto.InProgress,
+				},
+				data: {
+					status: JobRoleApplicationStatusDto.Rejected,
+				},
+			});
+
+			if (updateResult.count !== 1) {
+				throw new InvalidJobRoleApplicationStatusError(
+					applicationId,
+					application.status,
+				);
+			}
+
+			const updatedApplication = await transaction.application.findUnique({
+				where: { id: applicationId },
+				include: {
+					user: {
+						select: {
+							id: true,
+							email: true,
+						},
+					},
+				},
+			});
+
+			if (!updatedApplication) {
+				throw new JobRoleApplicationNotFoundError(jobRoleId, applicationId);
+			}
+
+			return updatedApplication;
 		});
 	}
 }

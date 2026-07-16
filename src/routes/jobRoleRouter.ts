@@ -5,6 +5,7 @@ import { CapabilityDao } from "../daos/capabilityDao.js";
 import { JobRoleDao } from "../daos/jobRoleDao.js";
 import {
 	CreateJobRoleRequestSchema,
+	JobRoleApplicationActionParamsSchema,
 	JobRoleIdParamSchema,
 } from "../dtos/jobRoleDto.js";
 import { UpdateJobRoleRequestSchema } from "../dtos/updateJobRoleDto.js";
@@ -49,6 +50,27 @@ router.get(
 	authenticate,
 	requireAdmin,
 	jobRoleController.downloadJobRolesReport.bind(jobRoleController),
+);
+router.get(
+	"/:id/applications",
+	authenticate,
+	requireAdmin,
+	validateParams(JobRoleIdParamSchema),
+	jobRoleController.getJobRoleApplicationsForAdmin.bind(jobRoleController),
+);
+router.patch(
+	"/:id/applications/:applicationId/hire",
+	authenticate,
+	requireAdmin,
+	validateParams(JobRoleApplicationActionParamsSchema),
+	jobRoleController.hireApplicant.bind(jobRoleController),
+);
+router.patch(
+	"/:id/applications/:applicationId/reject",
+	authenticate,
+	requireAdmin,
+	validateParams(JobRoleApplicationActionParamsSchema),
+	jobRoleController.rejectApplicant.bind(jobRoleController),
 );
 router.get(
 	"/:id",
