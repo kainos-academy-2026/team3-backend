@@ -25,6 +25,33 @@ export interface JobRoleResponseDto {
 	status: JobRoleStatusDto;
 }
 
+export interface JobRolePaginationQueryDto {
+	limit: number;
+	page: number;
+}
+
+export interface JobRolePaginationMetaDto {
+	totalItems: number;
+	totalPages: number;
+	currentPage: number;
+	pageSize: number;
+	hasNext: boolean;
+	hasPrevious: boolean;
+}
+
+export interface JobRolePaginationLinksDto {
+	first: string | null;
+	next: string | null;
+	previous: string | null;
+	last: string | null;
+}
+
+export interface PaginatedJobRoleResponseDto {
+	data: JobRoleResponseDto[];
+	pagination: JobRolePaginationMetaDto;
+	links: JobRolePaginationLinksDto;
+}
+
 export interface JobRoleDetailedResponseDto {
 	id: number;
 	roleName: string;
@@ -56,6 +83,20 @@ export interface JobRoleApplicationResponseDto {
 
 export const JobRoleIdParamSchema = z.object({
 	id: z.coerce.number().int().positive("ID must be a positive integer"),
+});
+
+export const JobRolePaginationQuerySchema = z.object({
+	limit: z.coerce
+		.number()
+		.int("Limit must be an integer")
+		.min(1, "Limit must be at least 1")
+		.max(30, "Limit must not exceed 30")
+		.default(10),
+	page: z.coerce
+		.number()
+		.int("Page must be an integer")
+		.min(1, "Page must be at least 1")
+		.default(1),
 });
 
 export const CreateJobRoleRequestSchema = z.object({

@@ -1,7 +1,11 @@
 import type { NextFunction, Request, Response } from "express";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
-import { validateBody, validateParams } from "../../src/middleware/validate.js";
+import {
+	validateBody,
+	validateParams,
+	validateQuery,
+} from "../../src/middleware/validate.js";
 
 describe("Validation Middleware", () => {
 	let req: Partial<Request>;
@@ -12,6 +16,7 @@ describe("Validation Middleware", () => {
 		req = {
 			params: {},
 			body: {},
+			query: {},
 		};
 		res = {
 			status: vi.fn().mockReturnThis(),
@@ -100,6 +105,39 @@ describe("Validation Middleware", () => {
 				email: "test@example.com",
 				password: "pass123",
 			});
+		});
+	});
+
+	describe("validateQuery", () => {
+		it("should call next when query is valid", () => {
+			const schema = z.object({
+				limit: z.coerce.number().int().min(1).max(30).default(10),
+				page: z.coerce.number().int().min(1).default(1),
+			});
+
+			const middleware = validateQuery(schema);
+			req.query = { limit: "10", page: "2" };
+
+			middleware(req as Request, res as Response, next);
+
+			expect(next).toHaveBeenCalled();
+			expect(res.status).not.toHaveBeenCalled();
+		});
+
+		it("should return 400 when query is invalid", () => {
+			const schema = z.object({
+				limit: z.coerce.number().int().min(1).max(30),
+				page: z.coerce.number().int().min(1),
+			});
+
+			const middleware = validateQuery(schema);
+			req.query = { limit: "31", page: "0" };
+
+			middleware(req as Request, res as Response, next);
+
+			expect(res.status).toHaveBeenCalledWith(400);
+			expect(res.json).toHaveBeenCalled();
+			expect(next).not.toHaveBeenCalled();
 		});
 	});
 });
