@@ -11,6 +11,7 @@ import type { UpdateJobRoleRequestDto } from "../../src/dtos/updateJobRoleDto.js
 import { InvalidJobRoleApplicationStatusError } from "../../src/errors/InvalidJobRoleApplicationStatusError.js";
 import { InvalidJobRoleReferenceError } from "../../src/errors/InvalidJobRoleReferenceError.js";
 import { JobRoleApplicationNotFoundError } from "../../src/errors/JobRoleApplicationNotFoundError.js";
+import { JobRoleHasApplicationsError } from "../../src/errors/JobRoleHasApplicationsError.js";
 import { JobRoleHasNoOpenPositionsError } from "../../src/errors/JobRoleHasNoOpenPositionsError.js";
 import { JobRoleNotFoundError } from "../../src/errors/JobRoleNotFoundError.js";
 import type { JobRoleService } from "../../src/services/jobRoleService.js";
@@ -634,6 +635,21 @@ describe("JobRoleController", () => {
 			expect(res.status).toHaveBeenCalledWith(404);
 			expect(res.json).toHaveBeenCalledWith({
 				error: "Job role with id 999 was not found",
+			});
+		});
+
+		it("should return 409 when service throws JobRoleHasApplicationsError", async () => {
+			req = { params: { id: "1" } } as unknown as Request;
+			vi.mocked(jobRoleService.deleteJobRole).mockRejectedValueOnce(
+				new JobRoleHasApplicationsError(1, 2),
+			);
+
+			await controller.deleteJobRole(req, res);
+
+			expect(res.status).toHaveBeenCalledWith(409);
+			expect(res.json).toHaveBeenCalledWith({
+				error:
+					"Job role with id 1 cannot be deleted because it has 2 existing application(s)",
 			});
 		});
 

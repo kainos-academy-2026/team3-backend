@@ -112,6 +112,12 @@ export class JobRoleDao {
 		});
 	}
 
+	async countApplicationsByJobRoleId(jobRoleId: number): Promise<number> {
+		return prisma.application.count({
+			where: { jobRoleId },
+		});
+	}
+
 	async deleteJobRoleById(id: number): Promise<void> {
 		await prisma.jobRole.delete({
 			where: { id },

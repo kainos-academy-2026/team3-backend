@@ -18,6 +18,7 @@ import type {
 import type { JobRoleMetadataResponseDto } from "../dtos/jobRoleMetadataDto.js";
 import type { UpdateJobRoleRequestDto } from "../dtos/updateJobRoleDto.js";
 import { InvalidJobRoleReferenceError } from "../errors/InvalidJobRoleReferenceError.js";
+import { JobRoleHasApplicationsError } from "../errors/JobRoleHasApplicationsError.js";
 import { JobRoleNotFoundError } from "../errors/JobRoleNotFoundError.js";
 import type { JobRoleApplicationMapper } from "../mappers/jobRoleApplicationMapper.js";
 import type { JobRoleMapper } from "../mappers/jobRoleMapper.js";
@@ -310,6 +311,13 @@ export class JobRoleService {
 
 		if (!existingJobRole) {
 			throw new JobRoleNotFoundError(id);
+		}
+
+		const applicationCount =
+			await this.jobRoleDao.countApplicationsByJobRoleId(id);
+
+		if (applicationCount > 0) {
+			throw new JobRoleHasApplicationsError(id, applicationCount);
 		}
 
 		await this.jobRoleDao.deleteJobRoleById(id);

@@ -3,6 +3,7 @@ import { JobRolePaginationQuerySchema } from "../dtos/jobRoleDto.js";
 import { InvalidJobRoleApplicationStatusError } from "../errors/InvalidJobRoleApplicationStatusError.js";
 import { InvalidJobRoleReferenceError } from "../errors/InvalidJobRoleReferenceError.js";
 import { JobRoleApplicationNotFoundError } from "../errors/JobRoleApplicationNotFoundError.js";
+import { JobRoleHasApplicationsError } from "../errors/JobRoleHasApplicationsError.js";
 import { JobRoleHasNoOpenPositionsError } from "../errors/JobRoleHasNoOpenPositionsError.js";
 import { JobRoleNotFoundError } from "../errors/JobRoleNotFoundError.js";
 import type { JobRoleService } from "../services/jobRoleService.js";
@@ -226,6 +227,10 @@ export class JobRoleController {
 		} catch (error) {
 			if (error instanceof JobRoleNotFoundError) {
 				res.status(404).json({ error: error.message });
+				return;
+			}
+			if (error instanceof JobRoleHasApplicationsError) {
+				res.status(409).json({ error: error.message });
 				return;
 			}
 			console.error(error);
