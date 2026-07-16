@@ -26,6 +26,7 @@ const mockJobRoleDao = {
 	findCapabilityById: vi.fn(),
 	findBandById: vi.fn(),
 	updateJobRole: vi.fn(),
+	deleteJobRoleById: vi.fn(),
 	createApplication: vi.fn(),
 };
 
@@ -60,6 +61,7 @@ describe("JobRoleService", () => {
 		| "findCapabilityById"
 		| "findBandById"
 		| "updateJobRole"
+		| "deleteJobRoleById"
 		| "createApplication"
 	>;
 	let capabilityDao: Pick<
@@ -82,6 +84,7 @@ describe("JobRoleService", () => {
 			findCapabilityById: mockJobRoleDao.findCapabilityById,
 			findBandById: mockJobRoleDao.findBandById,
 			updateJobRole: mockJobRoleDao.updateJobRole,
+			deleteJobRoleById: mockJobRoleDao.deleteJobRoleById,
 			createApplication: mockJobRoleDao.createApplication,
 		};
 
@@ -736,5 +739,26 @@ describe("JobRoleService", () => {
 		expect(jobRoleDao.updateJobRole).toHaveBeenCalledWith(1, {
 			closingDate: new Date("2026-09-01"),
 		});
+	});
+
+	it("should delete a job role when it exists", async () => {
+		vi.mocked(jobRoleDao.findJobRoleById).mockResolvedValueOnce({
+			id: 1,
+		} as JobRoleWithRelations);
+		vi.mocked(jobRoleDao.deleteJobRoleById).mockResolvedValueOnce(undefined);
+
+		await service.deleteJobRole(1);
+
+		expect(jobRoleDao.findJobRoleById).toHaveBeenCalledWith(1);
+		expect(jobRoleDao.deleteJobRoleById).toHaveBeenCalledWith(1);
+	});
+
+	it("should throw JobRoleNotFoundError when job role to delete is missing", async () => {
+		vi.mocked(jobRoleDao.findJobRoleById).mockResolvedValueOnce(null);
+
+		await expect(service.deleteJobRole(999)).rejects.toBeInstanceOf(
+			JobRoleNotFoundError,
+		);
+		expect(jobRoleDao.deleteJobRoleById).not.toHaveBeenCalled();
 	});
 });

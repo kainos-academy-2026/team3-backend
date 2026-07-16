@@ -229,4 +229,14 @@ export class JobRoleService {
 
 		return this.jobRoleMapper.toDetailedResponse(updatedJobRole);
 	}
+
+	async deleteJobRole(id: number): Promise<void> {
+		const existingJobRole = await this.jobRoleDao.findJobRoleById(id);
+
+		if (!existingJobRole) {
+			throw new JobRoleNotFoundError(id);
+		}
+
+		await this.jobRoleDao.deleteJobRoleById(id);
+	}
 }

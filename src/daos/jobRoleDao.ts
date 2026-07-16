@@ -105,6 +105,12 @@ export class JobRoleDao {
 		});
 	}
 
+	async deleteJobRoleById(id: number): Promise<void> {
+		await prisma.jobRole.delete({
+			where: { id },
+		});
+	}
+
 	async createApplication(
 		userId: number,
 		jobRoleId: number,

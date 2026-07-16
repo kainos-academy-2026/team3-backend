@@ -19,6 +19,7 @@ const mockService = {
 	createJobRole: vi.fn(),
 	applyForJobRole: vi.fn(),
 	updateJobRole: vi.fn(),
+	deleteJobRole: vi.fn(),
 };
 
 describe("JobRoleController", () => {
@@ -30,6 +31,7 @@ describe("JobRoleController", () => {
 		| "findJobRoleById"
 		| "createJobRole"
 		| "updateJobRole"
+		| "deleteJobRole"
 		| "generateJobRolesCsvReport"
 		| "applyForJobRole"
 	>;
@@ -47,6 +49,7 @@ describe("JobRoleController", () => {
 			createJobRole: mockService.createJobRole,
 			applyForJobRole: mockService.applyForJobRole,
 			updateJobRole: mockService.updateJobRole,
+			deleteJobRole: mockService.deleteJobRole,
 		};
 
 		controller = new JobRoleController(jobRoleService as JobRoleService);
@@ -460,5 +463,44 @@ describe("JobRoleController", () => {
 
 		expect(res.status).toHaveBeenCalledWith(500);
 		expect(res.json).toHaveBeenCalledWith({ error: "Internal server error" });
+	});
+
+	describe("deleteJobRole", () => {
+		it("should return 204 when service resolves", async () => {
+			req = { params: { id: "1" } } as unknown as Request;
+			vi.mocked(jobRoleService.deleteJobRole).mockResolvedValueOnce(undefined);
+
+			await controller.deleteJobRole(req, res);
+
+			expect(jobRoleService.deleteJobRole).toHaveBeenCalledWith(1);
+			expect(res.status).toHaveBeenCalledWith(204);
+			expect(res.send).toHaveBeenCalled();
+		});
+
+		it("should return 404 when service throws JobRoleNotFoundError", async () => {
+			req = { params: { id: "999" } } as unknown as Request;
+			vi.mocked(jobRoleService.deleteJobRole).mockRejectedValueOnce(
+				new JobRoleNotFoundError(999),
+			);
+
+			await controller.deleteJobRole(req, res);
+
+			expect(res.status).toHaveBeenCalledWith(404);
+			expect(res.json).toHaveBeenCalledWith({
+				error: "Job role with id 999 was not found",
+			});
+		});
+
+		it("should return 500 when service throws an unexpected error", async () => {
+			req = { params: { id: "1" } } as unknown as Request;
+			vi.mocked(jobRoleService.deleteJobRole).mockRejectedValueOnce(
+				new Error("db down"),
+			);
+
+			await controller.deleteJobRole(req, res);
+
+			expect(res.status).toHaveBeenCalledWith(500);
+			expect(res.json).toHaveBeenCalledWith({ error: "Internal server error" });
+		});
 	});
 });

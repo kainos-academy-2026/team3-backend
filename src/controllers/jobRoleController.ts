@@ -130,4 +130,19 @@ export class JobRoleController {
 			res.status(500).json({ error: "Internal server error" });
 		}
 	}
+
+	async deleteJobRole(req: Request, res: Response): Promise<void> {
+		try {
+			const id = Number(req.params.id);
+			await this.jobRoleService.deleteJobRole(id);
+			res.status(204).send();
+		} catch (error) {
+			if (error instanceof JobRoleNotFoundError) {
+				res.status(404).json({ error: error.message });
+				return;
+			}
+			console.error(error);
+			res.status(500).json({ error: "Internal server error" });
+		}
+	}
 }
