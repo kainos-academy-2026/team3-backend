@@ -13,11 +13,37 @@ export type JobRoleWithRelations = Prisma.JobRoleGetPayload<{
 export class JobRoleDao {
 	async findAllJobRoles(): Promise<JobRoleWithRelations[]> {
 		return prisma.jobRole.findMany({
+			orderBy: {
+				id: "desc",
+			},
 			include: {
 				capability: true,
 				band: true,
 			},
 		});
+	}
+
+	async findPaginatedJobRoles(
+		limit: number,
+		page: number,
+	): Promise<JobRoleWithRelations[]> {
+		const skip = (page - 1) * limit;
+
+		return prisma.jobRole.findMany({
+			skip,
+			take: limit,
+			orderBy: {
+				id: "desc",
+			},
+			include: {
+				capability: true,
+				band: true,
+			},
+		});
+	}
+
+	async countJobRoles(): Promise<number> {
+		return prisma.jobRole.count();
 	}
 
 	async createJobRole(data: {

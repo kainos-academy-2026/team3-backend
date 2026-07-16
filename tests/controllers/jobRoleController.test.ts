@@ -2,8 +2,8 @@ import type { Request, Response } from "express";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { JobRoleController } from "../../src/controllers/jobRoleController.js";
 import {
-	type JobRoleResponseDto,
 	JobRoleStatusDto,
+	type PaginatedJobRoleResponseDto,
 } from "../../src/dtos/jobRoleDto.js";
 import type { JobRoleMetadataResponseDto } from "../../src/dtos/jobRoleMetadataDto.js";
 import type { UpdateJobRoleRequestDto } from "../../src/dtos/updateJobRoleDto.js";
@@ -60,30 +60,53 @@ describe("JobRoleController", () => {
 		} as unknown as Response;
 	});
 
-	it("should return 200 with mapped job roles", async () => {
-		const jobRoles: JobRoleResponseDto[] = [
-			{
-				id: 1,
-				roleName: "Backend Engineer",
-				location: "Dublin",
-				capability: {
-					capabilityId: 1,
-					capabilityName: "Engineering",
+	it("should return 200 with paginated job roles", async () => {
+		const jobRoles: PaginatedJobRoleResponseDto = {
+			data: [
+				{
+					id: 1,
+					roleName: "Backend Engineer",
+					location: "Dublin",
+					capability: {
+						capabilityId: 1,
+						capabilityName: "Engineering",
+					},
+					band: {
+						bandId: 1,
+						bandName: "Associate",
+					},
+					closingDate: "2026-08-31",
+					status: JobRoleStatusDto.Open,
 				},
-				band: {
-					bandId: 1,
-					bandName: "Associate",
-				},
-				closingDate: "2026-08-31",
-				status: JobRoleStatusDto.Open,
+			],
+			pagination: {
+				totalItems: 1,
+				totalPages: 1,
+				currentPage: 1,
+				pageSize: 10,
+				hasNext: false,
+				hasPrevious: false,
 			},
-		];
+			links: {
+				first: "/api/job-roles?limit=10&page=1",
+				next: null,
+				previous: null,
+				last: "/api/job-roles?limit=10&page=1",
+			},
+		};
+
+		req = {
+			query: { limit: 10, page: 1 },
+		} as unknown as Request;
 
 		vi.mocked(jobRoleService.findAllJobRoles).mockResolvedValueOnce(jobRoles);
 
 		await controller.getAllJobRoles(req, res);
 
-		expect(jobRoleService.findAllJobRoles).toHaveBeenCalledTimes(1);
+		expect(jobRoleService.findAllJobRoles).toHaveBeenCalledWith({
+			limit: 10,
+			page: 1,
+		});
 		expect(res.status).toHaveBeenCalledWith(200);
 		expect(res.json).toHaveBeenCalledWith(jobRoles);
 	});
