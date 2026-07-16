@@ -1,6 +1,9 @@
 import type { Request, Response } from "express";
 import { JobRolePaginationQuerySchema } from "../dtos/jobRoleDto.js";
+import { InvalidJobRoleApplicationStatusError } from "../errors/InvalidJobRoleApplicationStatusError.js";
 import { InvalidJobRoleReferenceError } from "../errors/InvalidJobRoleReferenceError.js";
+import { JobRoleApplicationNotFoundError } from "../errors/JobRoleApplicationNotFoundError.js";
+import { JobRoleHasNoOpenPositionsError } from "../errors/JobRoleHasNoOpenPositionsError.js";
 import { JobRoleNotFoundError } from "../errors/JobRoleNotFoundError.js";
 import type { JobRoleService } from "../services/jobRoleService.js";
 
@@ -89,6 +92,90 @@ export class JobRoleController {
 			res.status(200).json(presignedUrlData);
 		} catch (error) {
 			console.error(error);
+			res.status(500).json({ error: "Internal server error" });
+		}
+	}
+
+	async getJobRoleApplicationsForAdmin(
+		req: Request,
+		res: Response,
+	): Promise<void> {
+		try {
+			const jobRoleId = Number(req.params.id);
+			const applications =
+				await this.jobRoleService.getJobRoleApplicationsForAdmin(jobRoleId);
+
+			res.status(200).json(applications);
+		} catch (error) {
+			if (error instanceof JobRoleNotFoundError) {
+				res.status(404).json({ error: error.message });
+				return;
+			}
+
+			console.error(error);
+			res.status(500).json({ error: "Internal server error" });
+		}
+	}
+
+	async hireApplicant(req: Request, res: Response): Promise<void> {
+		try {
+			const jobRoleId = Number(req.params.id);
+			const applicationId = Number(req.params.applicationId);
+			const result = await this.jobRoleService.hireApplicant(
+				jobRoleId,
+				applicationId,
+			);
+
+			res.status(200).json(result);
+		} catch (error) {
+			if (error instanceof JobRoleNotFoundError) {
+				res.status(404).json({ error: error.message });
+				return;
+			}
+
+			if (error instanceof JobRoleApplicationNotFoundError) {
+				res.status(404).json({ error: error.message });
+				return;
+			}
+
+			if (
+				error instanceof InvalidJobRoleApplicationStatusError ||
+				error instanceof JobRoleHasNoOpenPositionsError
+			) {
+				res.status(400).json({ error: error.message });
+				return;
+			}
+
+			console.error(error);
+			res.status(500).json({ error: "Internal server error" });
+		}
+	}
+
+	async rejectApplicant(req: Request, res: Response): Promise<void> {
+		try {
+			const jobRoleId = Number(req.params.id);
+			const applicationId = Number(req.params.applicationId);
+			const result = await this.jobRoleService.rejectApplicant(
+				jobRoleId,
+				applicationId,
+			);
+
+			res.status(200).json(result);
+		} catch (error) {
+			if (error instanceof JobRoleNotFoundError) {
+				res.status(404).json({ error: error.message });
+				return;
+			}
+
+			if (error instanceof JobRoleApplicationNotFoundError) {
+				res.status(404).json({ error: error.message });
+				return;
+			}
+
+			if (error instanceof InvalidJobRoleApplicationStatusError) {
+				res.status(400).json({ error: error.message });
+				return;
+			}
 			res.status(500).json({ error: "Internal server error" });
 		}
 	}

@@ -7,12 +7,14 @@ import type {
 } from "../../src/daos/jobRoleDao.js";
 import type { CreateJobRoleRequestDto } from "../../src/dtos/createJobRoleDto.js";
 import {
+	JobRoleApplicationStatusDto,
 	type JobRoleResponseDto,
 	JobRoleStatusDto,
 } from "../../src/dtos/jobRoleDto.js";
 import type { UpdateJobRoleRequestDto } from "../../src/dtos/updateJobRoleDto.js";
 import { InvalidJobRoleReferenceError } from "../../src/errors/InvalidJobRoleReferenceError.js";
 import { JobRoleNotFoundError } from "../../src/errors/JobRoleNotFoundError.js";
+import type { JobRoleApplicationMapper } from "../../src/mappers/jobRoleApplicationMapper.js";
 import type { JobRoleMapper } from "../../src/mappers/jobRoleMapper.js";
 import { JobRoleService } from "../../src/services/jobRoleService.js";
 import type { S3Service } from "../../src/services/s3Service.js";
@@ -28,6 +30,9 @@ const mockJobRoleDao = {
 	updateJobRole: vi.fn(),
 	deleteJobRoleById: vi.fn(),
 	createApplication: vi.fn(),
+	findApplicationsByJobRoleId: vi.fn(),
+	hireApplication: vi.fn(),
+	rejectApplication: vi.fn(),
 };
 
 const mockCapabilityDao = {
@@ -45,8 +50,16 @@ const mockMapper = {
 	toDetailedResponse: vi.fn(),
 };
 
+const mockJobRoleApplicationMapper = {
+	toApplicationSummary: vi.fn(),
+	toAdminApplicationsResponse: vi.fn(),
+	toHireResponse: vi.fn(),
+	toRejectResponse: vi.fn(),
+};
+
 const mockS3Service = {
 	getPresignedUploadUrl: vi.fn(),
+	getPresignedDownloadUrl: vi.fn(),
 };
 
 describe("JobRoleService", () => {
@@ -63,6 +76,9 @@ describe("JobRoleService", () => {
 		| "updateJobRole"
 		| "deleteJobRoleById"
 		| "createApplication"
+		| "findApplicationsByJobRoleId"
+		| "hireApplication"
+		| "rejectApplication"
 	>;
 	let capabilityDao: Pick<
 		CapabilityDao,
@@ -70,7 +86,17 @@ describe("JobRoleService", () => {
 	>;
 	let bandDao: Pick<BandDao, "findAllBands" | "findBandById">;
 	let jobRoleMapper: Pick<JobRoleMapper, "toResponse" | "toDetailedResponse">;
-	let s3Service: Pick<S3Service, "getPresignedUploadUrl">;
+	let jobRoleApplicationMapper: Pick<
+		JobRoleApplicationMapper,
+		| "toApplicationSummary"
+		| "toAdminApplicationsResponse"
+		| "toHireResponse"
+		| "toRejectResponse"
+	>;
+	let s3Service: Pick<
+		S3Service,
+		"getPresignedUploadUrl" | "getPresignedDownloadUrl"
+	>;
 
 	beforeEach(() => {
 		vi.clearAllMocks();
@@ -86,6 +112,9 @@ describe("JobRoleService", () => {
 			updateJobRole: mockJobRoleDao.updateJobRole,
 			deleteJobRoleById: mockJobRoleDao.deleteJobRoleById,
 			createApplication: mockJobRoleDao.createApplication,
+			findApplicationsByJobRoleId: mockJobRoleDao.findApplicationsByJobRoleId,
+			hireApplication: mockJobRoleDao.hireApplication,
+			rejectApplication: mockJobRoleDao.rejectApplication,
 		};
 
 		capabilityDao = {
@@ -103,8 +132,17 @@ describe("JobRoleService", () => {
 			toDetailedResponse: mockMapper.toDetailedResponse,
 		};
 
+		jobRoleApplicationMapper = {
+			toApplicationSummary: mockJobRoleApplicationMapper.toApplicationSummary,
+			toAdminApplicationsResponse:
+				mockJobRoleApplicationMapper.toAdminApplicationsResponse,
+			toHireResponse: mockJobRoleApplicationMapper.toHireResponse,
+			toRejectResponse: mockJobRoleApplicationMapper.toRejectResponse,
+		};
+
 		s3Service = {
 			getPresignedUploadUrl: mockS3Service.getPresignedUploadUrl,
+			getPresignedDownloadUrl: mockS3Service.getPresignedDownloadUrl,
 		};
 
 		service = new JobRoleService(
@@ -112,8 +150,223 @@ describe("JobRoleService", () => {
 			capabilityDao as CapabilityDao,
 			bandDao as BandDao,
 			jobRoleMapper as JobRoleMapper,
+			jobRoleApplicationMapper as JobRoleApplicationMapper,
 			s3Service as S3Service,
 		);
+	});
+
+	it("should return admin application data with presigned download urls", async () => {
+		vi.mocked(jobRoleDao.findJobRoleById).mockResolvedValueOnce({
+			id: 1,
+			roleName: "Backend Engineer",
+			location: "Dublin",
+			capabilityId: 10,
+			bandId: 3,
+			closingDate: new Date("2026-08-31"),
+			status: "Open",
+			description: "Backend role description",
+			responsibilities: "Build APIs",
+			sharepointUrl: "https://example.com/backend",
+			numberOfOpenPositions: 2,
+			capability: {
+				capabilityId: 10,
+				capabilityName: "Engineering",
+			},
+			band: {
+				bandId: 3,
+				bandName: "Band 3",
+			},
+		} as JobRoleWithRelations);
+		vi.mocked(jobRoleDao.findApplicationsByJobRoleId).mockResolvedValueOnce([
+			{
+				id: 101,
+				userId: 7,
+				jobRoleId: 1,
+				cvUrl: "job-applications/1/7/abc-cv.pdf",
+				status: JobRoleApplicationStatusDto.InProgress,
+				appliedAt: new Date("2026-07-01T12:00:00.000Z"),
+				user: {
+					id: 7,
+					email: "candidate@example.com",
+				},
+			},
+		] as never);
+		vi.mocked(s3Service.getPresignedDownloadUrl).mockResolvedValueOnce(
+			"https://example.com/download",
+		);
+		vi.mocked(
+			jobRoleApplicationMapper.toApplicationSummary,
+		).mockReturnValueOnce({
+			applicationId: 101,
+			userId: 7,
+			username: "candidate@example.com",
+			status: JobRoleApplicationStatusDto.InProgress,
+			appliedAt: "2026-07-01T12:00:00.000Z",
+			cvDownloadUrl: "https://example.com/download",
+		});
+		vi.mocked(
+			jobRoleApplicationMapper.toAdminApplicationsResponse,
+		).mockReturnValueOnce({
+			jobRoleId: 1,
+			roleName: "Backend Engineer",
+			numberOfOpenPositions: 2,
+			applicants: [
+				{
+					applicationId: 101,
+					userId: 7,
+					username: "candidate@example.com",
+					status: JobRoleApplicationStatusDto.InProgress,
+					appliedAt: "2026-07-01T12:00:00.000Z",
+					cvDownloadUrl: "https://example.com/download",
+				},
+			],
+		});
+
+		const result = await service.getJobRoleApplicationsForAdmin(1);
+
+		expect(jobRoleDao.findJobRoleById).toHaveBeenCalledWith(1);
+		expect(jobRoleDao.findApplicationsByJobRoleId).toHaveBeenCalledWith(1);
+		expect(s3Service.getPresignedDownloadUrl).toHaveBeenCalledWith(
+			"job-applications/1/7/abc-cv.pdf",
+		);
+		expect(jobRoleApplicationMapper.toApplicationSummary).toHaveBeenCalledWith(
+			expect.objectContaining({ id: 101, userId: 7 }),
+			"https://example.com/download",
+		);
+		expect(
+			jobRoleApplicationMapper.toAdminApplicationsResponse,
+		).toHaveBeenCalled();
+		expect(result).toEqual({
+			jobRoleId: 1,
+			roleName: "Backend Engineer",
+			numberOfOpenPositions: 2,
+			applicants: [
+				{
+					applicationId: 101,
+					userId: 7,
+					username: "candidate@example.com",
+					status: JobRoleApplicationStatusDto.InProgress,
+					appliedAt: "2026-07-01T12:00:00.000Z",
+					cvDownloadUrl: "https://example.com/download",
+				},
+			],
+		});
+	});
+
+	it("should hire an applicant and return updated positions", async () => {
+		vi.mocked(jobRoleDao.hireApplication).mockResolvedValueOnce({
+			application: {
+				id: 101,
+				userId: 7,
+				jobRoleId: 1,
+				cvUrl: "job-applications/1/7/abc-cv.pdf",
+				status: JobRoleApplicationStatusDto.Hired,
+				appliedAt: new Date("2026-07-01T12:00:00.000Z"),
+				user: {
+					id: 7,
+					email: "candidate@example.com",
+				},
+			},
+			numberOfOpenPositions: 1,
+		});
+		vi.mocked(s3Service.getPresignedDownloadUrl).mockResolvedValueOnce(
+			"https://example.com/download",
+		);
+		vi.mocked(
+			jobRoleApplicationMapper.toApplicationSummary,
+		).mockReturnValueOnce({
+			applicationId: 101,
+			userId: 7,
+			username: "candidate@example.com",
+			status: JobRoleApplicationStatusDto.Hired,
+			appliedAt: "2026-07-01T12:00:00.000Z",
+			cvDownloadUrl: "https://example.com/download",
+		});
+		vi.mocked(jobRoleApplicationMapper.toHireResponse).mockReturnValueOnce({
+			application: {
+				applicationId: 101,
+				userId: 7,
+				username: "candidate@example.com",
+				status: JobRoleApplicationStatusDto.Hired,
+				appliedAt: "2026-07-01T12:00:00.000Z",
+				cvDownloadUrl: "https://example.com/download",
+			},
+			numberOfOpenPositions: 1,
+		});
+
+		const result = await service.hireApplicant(1, 101);
+
+		expect(jobRoleDao.hireApplication).toHaveBeenCalledWith(1, 101);
+		expect(jobRoleApplicationMapper.toHireResponse).toHaveBeenCalledWith(
+			expect.objectContaining({ applicationId: 101 }),
+			1,
+		);
+		expect(result).toEqual({
+			application: {
+				applicationId: 101,
+				userId: 7,
+				username: "candidate@example.com",
+				status: JobRoleApplicationStatusDto.Hired,
+				appliedAt: "2026-07-01T12:00:00.000Z",
+				cvDownloadUrl: "https://example.com/download",
+			},
+			numberOfOpenPositions: 1,
+		});
+	});
+
+	it("should reject an applicant and return the updated application", async () => {
+		vi.mocked(jobRoleDao.rejectApplication).mockResolvedValueOnce({
+			id: 101,
+			userId: 7,
+			jobRoleId: 1,
+			cvUrl: "job-applications/1/7/abc-cv.pdf",
+			status: JobRoleApplicationStatusDto.Rejected,
+			appliedAt: new Date("2026-07-01T12:00:00.000Z"),
+			user: {
+				id: 7,
+				email: "candidate@example.com",
+			},
+		});
+		vi.mocked(s3Service.getPresignedDownloadUrl).mockResolvedValueOnce(
+			"https://example.com/download",
+		);
+		vi.mocked(
+			jobRoleApplicationMapper.toApplicationSummary,
+		).mockReturnValueOnce({
+			applicationId: 101,
+			userId: 7,
+			username: "candidate@example.com",
+			status: JobRoleApplicationStatusDto.Rejected,
+			appliedAt: "2026-07-01T12:00:00.000Z",
+			cvDownloadUrl: "https://example.com/download",
+		});
+		vi.mocked(jobRoleApplicationMapper.toRejectResponse).mockReturnValueOnce({
+			application: {
+				applicationId: 101,
+				userId: 7,
+				username: "candidate@example.com",
+				status: JobRoleApplicationStatusDto.Rejected,
+				appliedAt: "2026-07-01T12:00:00.000Z",
+				cvDownloadUrl: "https://example.com/download",
+			},
+		});
+
+		const result = await service.rejectApplicant(1, 101);
+
+		expect(jobRoleDao.rejectApplication).toHaveBeenCalledWith(1, 101);
+		expect(jobRoleApplicationMapper.toRejectResponse).toHaveBeenCalledWith(
+			expect.objectContaining({ applicationId: 101 }),
+		);
+		expect(result).toEqual({
+			application: {
+				applicationId: 101,
+				userId: 7,
+				username: "candidate@example.com",
+				status: JobRoleApplicationStatusDto.Rejected,
+				appliedAt: "2026-07-01T12:00:00.000Z",
+				cvDownloadUrl: "https://example.com/download",
+			},
+		});
 	});
 
 	it("should return mapped metadata from dao data", async () => {

@@ -12,8 +12,11 @@ const mocks = vi.hoisted(() => ({
 	mockCreateJobRole: vi.fn(),
 	mockApplyForJobRole: vi.fn(),
 	mockUpdateJobRole: vi.fn(),
-	mockDeleteJobRole: vi.fn(),
+	mockGetJobRoleApplicationsForAdmin: vi.fn(),
+	mockHireApplicant: vi.fn(),
+	mockRejectApplicant: vi.fn(),
 	mockVerifyToken: vi.fn(),
+	mockDeleteJobRole: vi.fn(),
 }));
 
 vi.mock("../../src/prismaClient.js", () => ({
@@ -42,7 +45,6 @@ vi.mock("../../src/services/jobRoleService.js", () => ({
 		createJobRole = mocks.mockCreateJobRole;
 		applyForJobRole = mocks.mockApplyForJobRole;
 		updateJobRole = mocks.mockUpdateJobRole;
-		deleteJobRole = mocks.mockDeleteJobRole;
 	},
 }));
 
@@ -404,6 +406,201 @@ describe("POST /api/job-roles/:id/apply", () => {
 			"cv.pdf",
 			"application/pdf",
 		);
+	});
+});
+
+describe("GET /api/job-roles/:id/applications", () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+	});
+
+	it("should return 401 when authorization header is missing", async () => {
+		const response = await request(app).get("/api/job-roles/1/applications");
+
+		expect(response.status).toBe(401);
+		expect(response.body).toEqual({
+			error: "Missing or invalid authorization header",
+		});
+		expect(mocks.mockGetJobRoleApplicationsForAdmin).not.toHaveBeenCalled();
+	});
+
+	it("should return 403 for authenticated non-admin user", async () => {
+		mocks.mockVerifyToken.mockResolvedValueOnce({
+			userId: 7,
+			email: "user@example.com",
+			role: "USER",
+		});
+
+		const response = await request(app)
+			.get("/api/job-roles/1/applications")
+			.set("Authorization", "Bearer valid-token");
+
+		expect(response.status).toBe(403);
+		expect(response.body).toEqual({ error: "Forbidden" });
+		expect(mocks.mockGetJobRoleApplicationsForAdmin).not.toHaveBeenCalled();
+	});
+
+	it("should return 200 for admin application list", async () => {
+		mocks.mockVerifyToken.mockResolvedValueOnce({
+			userId: 1,
+			email: "admin@example.com",
+			role: "ADMIN",
+		});
+		mocks.mockGetJobRoleApplicationsForAdmin.mockResolvedValueOnce({
+			jobRoleId: 1,
+			roleName: "Backend Engineer",
+			numberOfOpenPositions: 2,
+			applicants: [],
+		});
+
+		const response = await request(app)
+			.get("/api/job-roles/1/applications")
+			.set("Authorization", "Bearer valid-token");
+
+		expect(response.status).toBe(200);
+		expect(response.body).toEqual({
+			jobRoleId: 1,
+			roleName: "Backend Engineer",
+			numberOfOpenPositions: 2,
+			applicants: [],
+		});
+		expect(mocks.mockGetJobRoleApplicationsForAdmin).toHaveBeenCalledWith(1);
+	});
+});
+
+describe("PATCH /api/job-roles/:id/applications/:applicationId/hire", () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+	});
+
+	it("should return 401 when authorization header is missing", async () => {
+		const response = await request(app).patch(
+			"/api/job-roles/1/applications/101/hire",
+		);
+
+		expect(response.status).toBe(401);
+		expect(response.body).toEqual({
+			error: "Missing or invalid authorization header",
+		});
+		expect(mocks.mockHireApplicant).not.toHaveBeenCalled();
+	});
+
+	it("should return 403 for authenticated non-admin user", async () => {
+		mocks.mockVerifyToken.mockResolvedValueOnce({
+			userId: 7,
+			email: "user@example.com",
+			role: "USER",
+		});
+
+		const response = await request(app)
+			.patch("/api/job-roles/1/applications/101/hire")
+			.set("Authorization", "Bearer valid-token");
+
+		expect(response.status).toBe(403);
+		expect(response.body).toEqual({ error: "Forbidden" });
+		expect(mocks.mockHireApplicant).not.toHaveBeenCalled();
+	});
+
+	it("should return 200 for admin hire action", async () => {
+		mocks.mockVerifyToken.mockResolvedValueOnce({
+			userId: 1,
+			email: "admin@example.com",
+			role: "ADMIN",
+		});
+		mocks.mockHireApplicant.mockResolvedValueOnce({
+			application: {
+				applicationId: 101,
+				userId: 7,
+				username: "candidate@example.com",
+				status: "Hired",
+				appliedAt: "2026-07-01T12:00:00.000Z",
+				cvDownloadUrl: "https://example.com/download",
+			},
+			numberOfOpenPositions: 1,
+		});
+
+		const response = await request(app)
+			.patch("/api/job-roles/1/applications/101/hire")
+			.set("Authorization", "Bearer valid-token");
+
+		expect(response.status).toBe(200);
+		expect(response.body).toMatchObject({
+			application: {
+				applicationId: 101,
+				status: "Hired",
+			},
+			numberOfOpenPositions: 1,
+		});
+		expect(mocks.mockHireApplicant).toHaveBeenCalledWith(1, 101);
+	});
+});
+
+describe("PATCH /api/job-roles/:id/applications/:applicationId/reject", () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+	});
+
+	it("should return 403 for authenticated non-admin user", async () => {
+		mocks.mockVerifyToken.mockResolvedValueOnce({
+			userId: 7,
+			email: "user@example.com",
+			role: "USER",
+		});
+
+		const response = await request(app)
+			.patch("/api/job-roles/1/applications/101/reject")
+			.set("Authorization", "Bearer valid-token");
+
+		expect(response.status).toBe(403);
+		expect(response.body).toEqual({ error: "Forbidden" });
+		expect(mocks.mockRejectApplicant).not.toHaveBeenCalled();
+	});
+
+	it("should return 400 for invalid params", async () => {
+		mocks.mockVerifyToken.mockResolvedValueOnce({
+			userId: 1,
+			email: "admin@example.com",
+			role: "ADMIN",
+		});
+
+		const response = await request(app)
+			.patch("/api/job-roles/not-a-number/applications/101/reject")
+			.set("Authorization", "Bearer valid-token");
+
+		expect(response.status).toBe(400);
+		expect(response.body.errors[0]).toMatchObject({ field: "id" });
+		expect(mocks.mockRejectApplicant).not.toHaveBeenCalled();
+	});
+
+	it("should return 200 for admin reject action", async () => {
+		mocks.mockVerifyToken.mockResolvedValueOnce({
+			userId: 1,
+			email: "admin@example.com",
+			role: "ADMIN",
+		});
+		mocks.mockRejectApplicant.mockResolvedValueOnce({
+			application: {
+				applicationId: 101,
+				userId: 7,
+				username: "candidate@example.com",
+				status: "Rejected",
+				appliedAt: "2026-07-01T12:00:00.000Z",
+				cvDownloadUrl: "https://example.com/download",
+			},
+		});
+
+		const response = await request(app)
+			.patch("/api/job-roles/1/applications/101/reject")
+			.set("Authorization", "Bearer valid-token");
+
+		expect(response.status).toBe(200);
+		expect(response.body).toMatchObject({
+			application: {
+				applicationId: 101,
+				status: "Rejected",
+			},
+		});
+		expect(mocks.mockRejectApplicant).toHaveBeenCalledWith(1, 101);
 	});
 });
 
