@@ -1106,24 +1106,24 @@ describe("DELETE /api/job-roles/:id", () => {
 		});
 	});
 
-	it("should return 409 when the target job role has applications", async () => {
+	it("should return 409 when the target job role has existing applications", async () => {
 		mocks.mockVerifyToken.mockResolvedValueOnce({
 			userId: 1,
 			email: "admin@example.com",
 			role: "ADMIN",
 		});
 		mocks.mockDeleteJobRole.mockRejectedValueOnce(
-			new JobRoleHasApplicationsError(1, 2),
+			new JobRoleHasApplicationsError(1, 3),
 		);
 
 		const response = await request(app)
 			.delete("/api/job-roles/1")
-			.set("Authorization", "Bearer test-token");
+			.set("Authorization", "Bearer valid-token");
 
 		expect(response.status).toBe(409);
 		expect(response.body).toEqual({
 			error:
-				"Job role with id 1 cannot be deleted because it has 2 existing application(s)",
+				"Job role with id 1 cannot be deleted because it has 3 existing application(s)",
 		});
 	});
 
