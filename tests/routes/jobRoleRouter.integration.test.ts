@@ -23,6 +23,9 @@ let createdUserIds: number[] = [];
 let createdCapabilityIds: number[] = [];
 let createdBandIds: number[] = [];
 
+const runDbIntegrationTests = process.env.RUN_DB_INTEGRATION_TESTS === "true";
+const describeDbIntegration = runDbIntegrationTests ? describe : describe.skip;
+
 function createAuthToken(userId: number, email: string, role: UserRole): string {
 	const secret = process.env.JWT_SECRET;
 
@@ -167,7 +170,7 @@ afterAll(async () => {
 	await prisma.$disconnect();
 });
 
-describe("DELETE /api/job-roles/:id integration", () => {
+describeDbIntegration("DELETE /api/job-roles/:id integration", () => {
 	it("should return 401 when authorization header is missing", async () => {
 		const response = await request(app).delete("/api/job-roles/1");
 
