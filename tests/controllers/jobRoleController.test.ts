@@ -460,6 +460,28 @@ describe("JobRoleController", () => {
 		});
 	});
 
+	it("should return 404 when applyForJobRole target job role is missing", async () => {
+		req = {
+			params: { id: "999" },
+			user: { userId: 7, email: "user@example.com", role: "USER" },
+			body: {
+				fileName: "cv.pdf",
+				contentType: "application/pdf",
+			},
+		} as unknown as Request;
+
+		vi.mocked(jobRoleService.applyForJobRole).mockRejectedValueOnce(
+			new JobRoleNotFoundError(999),
+		);
+
+		await controller.applyForJobRole(req, res);
+
+		expect(res.status).toHaveBeenCalledWith(404);
+		expect(res.json).toHaveBeenCalledWith({
+			error: "Job role with id 999 was not found",
+		});
+	});
+
 	it("should return 500 when applyForJobRole throws", async () => {
 		req = {
 			params: { id: "2" },
