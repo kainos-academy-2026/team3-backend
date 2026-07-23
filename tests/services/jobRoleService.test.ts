@@ -777,6 +777,9 @@ describe("JobRoleService", () => {
 	});
 
 	it("should return presigned upload data and create an application", async () => {
+		vi.mocked(jobRoleDao.findJobRoleById).mockResolvedValueOnce(
+			{} as JobRoleWithRelations,
+		);
 		vi.mocked(s3Service.getPresignedUploadUrl).mockResolvedValueOnce({
 			uploadUrl: "https://example.com/upload",
 			key: "job-applications/2/7/123-cv.pdf",
@@ -808,6 +811,9 @@ describe("JobRoleService", () => {
 	});
 
 	it("should throw when presigned url generation fails", async () => {
+		vi.mocked(jobRoleDao.findJobRoleById).mockResolvedValueOnce(
+			{} as JobRoleWithRelations,
+		);
 		vi.mocked(s3Service.getPresignedUploadUrl).mockRejectedValueOnce(
 			new Error("s3 down"),
 		);
@@ -815,6 +821,16 @@ describe("JobRoleService", () => {
 		await expect(
 			service.applyForJobRole(7, 2, "cv.pdf", "application/pdf"),
 		).rejects.toThrow("s3 down");
+	});
+
+	it("should throw JobRoleNotFoundError when applying to a missing job role", async () => {
+		vi.mocked(jobRoleDao.findJobRoleById).mockResolvedValueOnce(null);
+
+		await expect(
+			service.applyForJobRole(7, 999, "cv.pdf", "application/pdf"),
+		).rejects.toBeInstanceOf(JobRoleNotFoundError);
+		expect(s3Service.getPresignedUploadUrl).not.toHaveBeenCalled();
+		expect(jobRoleDao.createApplication).not.toHaveBeenCalled();
 	});
 
 	it("should update a job role and return mapped response", async () => {

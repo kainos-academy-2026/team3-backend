@@ -2,6 +2,7 @@ import type { Application } from "express";
 import request from "supertest";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { InvalidJobRoleReferenceError } from "../../src/errors/InvalidJobRoleReferenceError.js";
+import { JobRoleHasApplicationsError } from "../../src/errors/JobRoleHasApplicationsError.js";
 import { JobRoleNotFoundError } from "../../src/errors/JobRoleNotFoundError.js";
 
 const mocks = vi.hoisted(() => ({
@@ -375,6 +376,114 @@ describe("POST /api/job-roles/:id/apply", () => {
 		expect(mocks.mockApplyForJobRole).not.toHaveBeenCalled();
 	});
 
+	it("should return 401 when authorization header is not a bearer token", async () => {
+		const response = await request(app)
+			.post("/api/job-roles/2/apply")
+			.set("Authorization", "Basic invalid-token")
+			.send({ fileName: "cv.pdf", contentType: "application/pdf" });
+
+		expect(response.status).toBe(401);
+		expect(response.body).toEqual({
+			error: "Missing or invalid authorization header",
+		});
+		expect(mocks.mockApplyForJobRole).not.toHaveBeenCalled();
+	});
+
+	it("should return 401 when token payload does not include a user id", async () => {
+		mocks.mockVerifyToken.mockResolvedValueOnce({
+			email: "user@example.com",
+			role: "USER",
+		});
+
+		const response = await request(app)
+			.post("/api/job-roles/2/apply")
+			.set("Authorization", "Bearer test-token")
+			.send({ fileName: "cv.pdf", contentType: "application/pdf" });
+
+		expect(response.status).toBe(401);
+		expect(response.body).toEqual({ error: "Authentication required" });
+		expect(mocks.mockApplyForJobRole).not.toHaveBeenCalled();
+	});
+
+	it("should return 400 when the job role id is invalid", async () => {
+		mocks.mockVerifyToken.mockResolvedValueOnce({
+			userId: 7,
+			email: "user@example.com",
+			role: "USER",
+		});
+
+		const response = await request(app)
+			.post("/api/job-roles/not-a-number/apply")
+			.set("Authorization", "Bearer test-token")
+			.send({ fileName: "cv.pdf", contentType: "application/pdf" });
+
+		expect(response.status).toBe(400);
+		expect(response.body).toEqual({
+			errors: [
+				{
+					field: "id",
+					message: "Invalid input: expected number, received NaN",
+				},
+			],
+		});
+		expect(mocks.mockApplyForJobRole).not.toHaveBeenCalled();
+	});
+
+	it("should return 400 when fileName is missing", async () => {
+		mocks.mockVerifyToken.mockResolvedValueOnce({
+			userId: 7,
+			email: "user@example.com",
+			role: "USER",
+		});
+
+		const response = await request(app)
+			.post("/api/job-roles/2/apply")
+			.set("Authorization", "Bearer test-token")
+			.send({ contentType: "application/pdf" });
+
+		expect(response.status).toBe(400);
+		expect(response.body).toEqual({ error: "Missing required fields" });
+		expect(mocks.mockApplyForJobRole).not.toHaveBeenCalled();
+	});
+
+	it("should return 400 when contentType is missing", async () => {
+		mocks.mockVerifyToken.mockResolvedValueOnce({
+			userId: 7,
+			email: "user@example.com",
+			role: "USER",
+		});
+
+		const response = await request(app)
+			.post("/api/job-roles/2/apply")
+			.set("Authorization", "Bearer test-token")
+			.send({ fileName: "cv.pdf" });
+
+		expect(response.status).toBe(400);
+		expect(response.body).toEqual({ error: "Missing required fields" });
+		expect(mocks.mockApplyForJobRole).not.toHaveBeenCalled();
+	});
+
+	it("should return 404 when the target job role does not exist", async () => {
+		mocks.mockVerifyToken.mockResolvedValueOnce({
+			userId: 7,
+			email: "user@example.com",
+			role: "USER",
+		});
+		mocks.mockApplyForJobRole.mockRejectedValueOnce(
+			new JobRoleNotFoundError(999),
+		);
+
+		const response = await request(app)
+			.post("/api/job-roles/999/apply")
+			.set("Authorization", "Bearer test-token")
+			.send({ fileName: "cv.pdf", contentType: "application/pdf" });
+
+		expect(response.status).toBe(404);
+		expect(response.body).toEqual({
+			error: "Job role with id 999 was not found",
+		});
+	});
+
 	it("should return 200 and apply with authenticated user id", async () => {
 		mocks.mockVerifyToken.mockResolvedValueOnce({
 			userId: 7,
@@ -646,6 +755,19 @@ describe("POST /api/job-roles", () => {
 		expect(mocks.mockCreateJobRole).not.toHaveBeenCalled();
 	});
 
+	it("should return 401 when token is invalid", async () => {
+		mocks.mockVerifyToken.mockResolvedValueOnce(null);
+
+		const response = await request(app)
+			.post("/api/job-roles")
+			.set("Authorization", "Bearer test-token")
+			.send(validPayload);
+
+		expect(response.status).toBe(401);
+		expect(response.body).toEqual({ error: "Invalid or expired token" });
+		expect(mocks.mockCreateJobRole).not.toHaveBeenCalled();
+	});
+
 	it("should return 400 when body validation fails", async () => {
 		mocks.mockVerifyToken.mockResolvedValueOnce({
 			userId: 1,
@@ -663,6 +785,27 @@ describe("POST /api/job-roles", () => {
 			errors: [{ field: "roleName", message: "Role name is required" }],
 		});
 		expect(mocks.mockCreateJobRole).not.toHaveBeenCalled();
+	});
+
+	it("should return 400 when related capability or band references are invalid", async () => {
+		mocks.mockVerifyToken.mockResolvedValueOnce({
+			userId: 1,
+			email: "admin@example.com",
+			role: "ADMIN",
+		});
+		mocks.mockCreateJobRole.mockRejectedValueOnce(
+			new InvalidJobRoleReferenceError("Capability with ID 999 does not exist"),
+		);
+
+		const response = await request(app)
+			.post("/api/job-roles")
+			.set("Authorization", "Bearer test-token")
+			.send(validPayload);
+
+		expect(response.status).toBe(400);
+		expect(response.body).toEqual({
+			error: "Capability with ID 999 does not exist",
+		});
 	});
 
 	it("should return 201 for authenticated admin with valid payload", async () => {
@@ -731,6 +874,19 @@ describe("PATCH /api/job-roles/:id", () => {
 
 		expect(response.status).toBe(403);
 		expect(response.body).toEqual({ error: "Forbidden" });
+		expect(mocks.mockUpdateJobRole).not.toHaveBeenCalled();
+	});
+
+	it("should return 401 when token is invalid", async () => {
+		mocks.mockVerifyToken.mockResolvedValueOnce(null);
+
+		const response = await request(app)
+			.patch("/api/job-roles/1")
+			.set("Authorization", "Bearer test-token")
+			.send({ roleName: "Updated Role" });
+
+		expect(response.status).toBe(401);
+		expect(response.body).toEqual({ error: "Invalid or expired token" });
 		expect(mocks.mockUpdateJobRole).not.toHaveBeenCalled();
 	});
 
@@ -903,6 +1059,18 @@ describe("DELETE /api/job-roles/:id", () => {
 		expect(mocks.mockDeleteJobRole).not.toHaveBeenCalled();
 	});
 
+	it("should return 401 when token is invalid", async () => {
+		mocks.mockVerifyToken.mockResolvedValueOnce(null);
+
+		const response = await request(app)
+			.delete("/api/job-roles/1")
+			.set("Authorization", "Bearer test-token");
+
+		expect(response.status).toBe(401);
+		expect(response.body).toEqual({ error: "Invalid or expired token" });
+		expect(mocks.mockDeleteJobRole).not.toHaveBeenCalled();
+	});
+
 	it("should return 400 for invalid route id", async () => {
 		mocks.mockVerifyToken.mockResolvedValueOnce({
 			userId: 1,
@@ -935,6 +1103,27 @@ describe("DELETE /api/job-roles/:id", () => {
 		expect(response.status).toBe(404);
 		expect(response.body).toEqual({
 			error: "Job role with id 1 was not found",
+		});
+	});
+
+	it("should return 409 when the target job role has applications", async () => {
+		mocks.mockVerifyToken.mockResolvedValueOnce({
+			userId: 1,
+			email: "admin@example.com",
+			role: "ADMIN",
+		});
+		mocks.mockDeleteJobRole.mockRejectedValueOnce(
+			new JobRoleHasApplicationsError(1, 2),
+		);
+
+		const response = await request(app)
+			.delete("/api/job-roles/1")
+			.set("Authorization", "Bearer test-token");
+
+		expect(response.status).toBe(409);
+		expect(response.body).toEqual({
+			error:
+				"Job role with id 1 cannot be deleted because it has 2 existing application(s)",
 		});
 	});
 

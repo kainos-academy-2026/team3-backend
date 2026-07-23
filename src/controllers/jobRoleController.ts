@@ -92,6 +92,11 @@ export class JobRoleController {
 
 			res.status(200).json(presignedUrlData);
 		} catch (error) {
+			if (error instanceof JobRoleNotFoundError) {
+				res.status(404).json({ error: error.message });
+				return;
+			}
+
 			console.error(error);
 			res.status(500).json({ error: "Internal server error" });
 		}

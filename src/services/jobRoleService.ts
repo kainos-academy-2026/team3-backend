@@ -190,6 +190,12 @@ export class JobRoleService {
 		fileName: string,
 		contentType: string,
 	): Promise<JobRoleApplicationResponseDto> {
+		const jobRole = await this.jobRoleDao.findJobRoleById(jobRoleId);
+
+		if (!jobRole) {
+			throw new JobRoleNotFoundError(jobRoleId);
+		}
+
 		const { uploadUrl, key } = await this.s3Service.getPresignedUploadUrl(
 			userId,
 			jobRoleId,
