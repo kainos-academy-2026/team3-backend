@@ -1,0 +1,44 @@
+FROM node:22-alpine AS builder
+WORKDIR /app
+
+# Alpine uses musl libc (not glibc/Debian), and ships without build tools by
+# default. python3/make/g++ are needed so npm can compile native modules
+# (argon2, bcrypt) that don't have prebuilt musl binaries for this platform.
+RUN apk add --no-cache openssl ca-certificates python3 make g++
+
+# Add corporate/Zscaler CA so TLS-inspected HTTPS can be verified
+COPY certs/zscaler-chain.crt /usr/local/share/ca-certificates/corporate-root-ca.crt
+RUN update-ca-certificates
+ENV NODE_EXTRA_CA_CERTS=/usr/local/share/ca-certificates/corporate-root-ca.crt
+
+COPY package*.json ./
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci
+
+COPY prisma ./prisma
+# See NOTE in Dockerfile: Prisma's engine downloader doesn't honour
+# NODE_EXTRA_CA_CERTS for the Zscaler TLS-inspection chain.
+RUN NODE_TLS_REJECT_UNAUTHORIZED=0 npx prisma generate
+
+COPY tsconfig.json ./
+COPY src ./src
+RUN npx tsc
+
+FROM node:22-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+
+# openssl is required at runtime by Prisma's query engine
+RUN apk add --no-cache openssl
+
+COPY --chown=node:node package*.json ./
+RUN --mount=type=cache,target=/root/.npm npm ci --omit=dev
+
+COPY --from=builder --chown=node:node /app/dist ./dist
+COPY --from=builder --chown=node:node /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder --chown=node:node /app/node_modules/@prisma/client ./node_modules/@prisma/client
+
+USER node
+
+EXPOSE 4000
+CMD ["node", "dist/index.js"]

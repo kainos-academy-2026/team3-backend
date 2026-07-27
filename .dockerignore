@@ -1,0 +1,25 @@
+node_modules/
+dist/
+coverage/
+.git
+.gitignore
+.env
+.env.*
+
+# Docs
+README.md
+docs/
+instructions/
+APPLY_AUTH_TICKET_INSTRUCTIONS.txt
+
+# Tests
+tests/
+
+# CI / editor / misc
+.github/
+.vscode/
+.copilotignore
+
+# Docker files themselves (no need to copy into the image)
+Dockerfile*
+.dockerignore
