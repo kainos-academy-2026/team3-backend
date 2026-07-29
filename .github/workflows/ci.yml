@@ -8,6 +8,10 @@ on:
     - cron: '0 19 * * *'
   workflow_dispatch:
 
+env:
+  # Single place to change when a "prod" pipeline/environment is added later.
+  ENVIRONMENT: dev
+
 jobs:
   test:
     name: Run Tests & Lint
@@ -61,8 +65,8 @@ jobs:
           file: ./Dockerfile.alpine
           push: true
           tags: |
-            acraiacademy26.azurecr.io/team3-backend:${{ github.sha }}
-            acraiacademy26.azurecr.io/team3-backend:latest
+            acraiacademy26.azurecr.io/team3-backend:${{ env.ENVIRONMENT }}-${{ github.sha }}
+            acraiacademy26.azurecr.io/team3-backend:${{ env.ENVIRONMENT }}-latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -87,7 +91,7 @@ jobs:
       ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
       ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      TF_VAR_environment: dev
+      TF_VAR_environment: ${{ env.ENVIRONMENT }}
     steps:
       - uses: actions/checkout@v4
       - name: Log in to Azure
