@@ -6,10 +6,18 @@ WORKDIR /app
 # (argon2, bcrypt) that don't have prebuilt musl binaries for this platform.
 RUN apk add --no-cache openssl ca-certificates python3 make g++
 
-# Add corporate/Zscaler CA so TLS-inspected HTTPS can be verified
-COPY certs/zscaler-chain.crt /usr/local/share/ca-certificates/corporate-root-ca.crt
-RUN update-ca-certificates
-ENV NODE_EXTRA_CA_CERTS=/usr/local/share/ca-certificates/corporate-root-ca.crt
+# Trust any corporate/Zscaler CA certificates present in certs/ so
+# TLS-inspected HTTPS works on the corporate network. certs/*.crt and
+# certs/*.pem are gitignored (never committed), so on GitHub-hosted CI
+# runners this directory will be empty after checkout and this step simply
+# installs nothing extra — no build-arg or override needed either way.
+COPY certs/ /tmp/certs/
+RUN for f in /tmp/certs/*.crt /tmp/certs/*.pem; do \
+      [ -f "$f" ] && cp "$f" "/usr/local/share/ca-certificates/$(basename "$f" | sed 's/\.[^.]*$/.crt/')"; \
+    done; true \
+    && update-ca-certificates \
+    && rm -rf /tmp/certs
+ENV NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt
 
 COPY package*.json ./
 RUN --mount=type=cache,target=/root/.npm \
