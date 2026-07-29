@@ -37,18 +37,19 @@
  
 FROM node:22-bookworm-slim AS builder
 WORKDIR /app
-# Add corporate/Zscaler CA so TLS-inspected HTTPS can be verified.
-# Defaults to an empty no-op file so CI/GitHub-hosted runners (not behind
-# a corporate proxy) build cleanly without this file needing to exist.
-# For local corporate-network builds, override with:
-#   docker build --build-arg CERT_FILE=certs/zscaler-chain.crt ...
-ARG CERT_FILE=certs/noop-ca.txt
-COPY ${CERT_FILE} /usr/local/share/ca-certificates/corporate-root-ca.crt
+# Trust any corporate/Zscaler CA certificates present in certs/ so
+# TLS-inspected HTTPS works on the corporate network. certs/*.crt and
+# certs/*.pem are gitignored (never committed), so on GitHub-hosted CI
+# runners this directory will be empty after checkout and this step simply
+# installs nothing extra — no build-arg or override needed either way.
+COPY certs/ /tmp/certs/
 RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates \
-    && chmod 644 /usr/local/share/ca-certificates/corporate-root-ca.crt \
+    && for f in /tmp/certs/*.crt /tmp/certs/*.pem; do \
+         [ -f "$f" ] && cp "$f" "/usr/local/share/ca-certificates/$(basename "$f" | sed 's/\.[^.]*$/.crt/')"; \
+       done; true \
     && update-ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
-ENV NODE_EXTRA_CA_CERTS=/usr/local/share/ca-certificates/corporate-root-ca.crt
+    && rm -rf /tmp/certs /var/lib/apt/lists/*
+ENV NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt
 COPY package*.json ./
 RUN --mount=type=cache,target=/root/.npm \
     npm ci

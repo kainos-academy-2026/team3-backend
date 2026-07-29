@@ -98,7 +98,10 @@ jobs:
       - name: Terraform fmt check
         run: terraform fmt -check -recursive
       - name: Terraform init
-        run: terraform init -input=false
+        # backend-dev.hcl supplies the actual state location for the "dev"
+        # environment. A future "prod" pipeline would use backend-prod.hcl
+        # here instead — backend.tf itself never needs to change.
+        run: terraform init -input=false -backend-config=backend-dev.hcl
       - name: Terraform plan
         run: terraform plan -input=false -out=tfplan
       - name: Upload plan artifact
