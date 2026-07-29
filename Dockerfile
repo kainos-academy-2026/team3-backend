@@ -37,7 +37,13 @@
  
 FROM node:22-bookworm-slim AS builder
 WORKDIR /app
-COPY certs/zscaler-chain.crt /usr/local/share/ca-certificates/corporate-root-ca.crt
+# Add corporate/Zscaler CA so TLS-inspected HTTPS can be verified.
+# Defaults to an empty no-op file so CI/GitHub-hosted runners (not behind
+# a corporate proxy) build cleanly without this file needing to exist.
+# For local corporate-network builds, override with:
+#   docker build --build-arg CERT_FILE=certs/zscaler-chain.crt ...
+ARG CERT_FILE=certs/noop-ca.txt
+COPY ${CERT_FILE} /usr/local/share/ca-certificates/corporate-root-ca.crt
 RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates \
     && chmod 644 /usr/local/share/ca-certificates/corporate-root-ca.crt \
     && update-ca-certificates \

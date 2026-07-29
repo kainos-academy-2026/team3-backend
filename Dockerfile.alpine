@@ -6,8 +6,13 @@ WORKDIR /app
 # (argon2, bcrypt) that don't have prebuilt musl binaries for this platform.
 RUN apk add --no-cache openssl ca-certificates python3 make g++
 
-# Add corporate/Zscaler CA so TLS-inspected HTTPS can be verified
-COPY certs/zscaler-chain.crt /usr/local/share/ca-certificates/corporate-root-ca.crt
+# Add corporate/Zscaler CA so TLS-inspected HTTPS can be verified.
+# Defaults to an empty no-op file so CI/GitHub-hosted runners (not behind
+# a corporate proxy) build cleanly without this file needing to exist.
+# For local corporate-network builds, override with:
+#   docker build --build-arg CERT_FILE=certs/zscaler-chain.crt ...
+ARG CERT_FILE=certs/noop-ca.txt
+COPY ${CERT_FILE} /usr/local/share/ca-certificates/corporate-root-ca.crt
 RUN update-ca-certificates
 ENV NODE_EXTRA_CA_CERTS=/usr/local/share/ca-certificates/corporate-root-ca.crt
 
