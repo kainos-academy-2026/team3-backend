@@ -1,9 +1,35 @@
+# Node modules and build/test output
 node_modules/
 dist/
 .env
 coverage/
 
+# Ignore generated Prisma client
 /src/generated/prisma
 certs/*.cer
 certs/*.crt
 certs/*.pem
+
+# Terraform local files
+.terraform/
+.terraform.lock.hcl
+terraform.tfstate
+terraform.tfstate.*
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Crash log files
+crash.log
+crash.*.log
+
+# Exclude all .tfvars files, which might contain sensitive data
+*.tfvars
+*.tfvars.json
+
+# Ignore plan files
+*.tfplan
+
+# Ignore Mac .DS_Store files
+.DS_Store
