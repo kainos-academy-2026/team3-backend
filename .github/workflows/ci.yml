@@ -91,7 +91,10 @@ jobs:
       ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
       ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      TF_VAR_environment: ${{ env.ENVIRONMENT }}
+      # Can't reference the top-level `env.ENVIRONMENT` here — GitHub Actions
+      # doesn't allow the `env` context inside a job's own `env:` block (only
+      # inside `steps:`). Keep this in sync with `env.ENVIRONMENT` above.
+      TF_VAR_environment: dev
     steps:
       - uses: actions/checkout@v4
       - name: Log in to Azure
