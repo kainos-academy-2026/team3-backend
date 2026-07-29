@@ -12,6 +12,15 @@ env:
   # Single place to change when a "prod" pipeline/environment is added later.
   ENVIRONMENT: dev
 
+# A push to a branch with an open PR fires BOTH a `push` event and a
+# `pull_request: synchronize` event for the same commit, so this workflow
+# would otherwise run twice at once (wasting runner minutes and causing the
+# terraform job to race for the same remote state lock). This cancels the
+# older, now-stale run for the same branch/PR whenever a newer one starts.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     name: Run Tests & Lint
