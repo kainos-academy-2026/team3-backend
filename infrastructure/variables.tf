@@ -20,3 +20,15 @@ variable "environment" {
     error_message = "Environment must be dev, test, or prod."
   }
 }
+
+variable "key_vault_name" {
+  description = "Name of the Azure Key Vault (must be globally unique, max 24 chars)"
+  type        = string
+  default     = "team3-kv-dev"
+}
+
+variable "identity_name" {
+  description = "Name of the user-assigned managed identity"
+  type        = string
+  default     = "team3-app-identity"
+}
