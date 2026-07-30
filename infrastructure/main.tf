@@ -178,4 +178,19 @@ resource "azurerm_container_app" "backend" {
   ]
 }
 
+module "postgres" {
+  source = "./modules/postgres"
 
+  resource_group_name  = module.resource_group.resource_group_name
+  location             = var.location
+  environment          = var.environment
+  server_name          = var.db_server_name
+  admin_login          = var.db_admin_login
+  admin_password       = var.db_admin_password
+  db_name              = var.db_name
+  allowed_ip_addresses = var.allowed_ip_addresses
+
+  tags = {
+    Project = "team3-backend"
+  }
+}

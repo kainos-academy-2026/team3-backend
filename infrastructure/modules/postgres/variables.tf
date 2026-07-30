@@ -1,11 +1,10 @@
 variable "resource_group_name" {
-  description = "Name of the Azure resource group"
+  description = "Name of the Azure resource group to deploy into"
   type        = string
-  default     = "team3-rg"
 }
 
 variable "location" {
-  description = "Azure region for resources"
+  description = "Azure region"
   type        = string
   default     = "UK South"
 }
@@ -21,42 +20,41 @@ variable "environment" {
   }
 }
 
-variable "key_vault_name" {
-  description = "Name of the Azure Key Vault (must be globally unique, max 24 chars)"
+variable "server_name" {
+  description = "Unique name for the PostgreSQL Flexible Server (must be globally unique in Azure)"
   type        = string
-  default     = "team3-kv-dev"
 }
 
-variable "identity_name" {
-  description = "Name of the user-assigned managed identity"
-  type        = string
-  default     = "team3-app-identity"
-variable "db_server_name" {
-  description = "Globally unique name for the PostgreSQL Flexible Server"
-  type        = string
-  default     = "team3-postgres-dev"
-}
-
-variable "db_admin_login" {
+variable "admin_login" {
   description = "Administrator username for the PostgreSQL server"
   type        = string
-  default     = "team3admin"
 }
 
-variable "db_admin_password" {
+variable "admin_password" {
   description = "Administrator password for the PostgreSQL server"
   type        = string
   sensitive   = true
+
+  validation {
+    condition     = length(var.admin_password) >= 8
+    error_message = "Admin password must be at least 8 characters."
+  }
 }
 
 variable "db_name" {
-  description = "Name of the database to create"
+  description = "Name of the initial database to create on the server"
   type        = string
   default     = "team3"
 }
 
 variable "allowed_ip_addresses" {
-  description = "Map of label => IP address to whitelist on the server firewall"
+  description = "Map of friendly name to IP address allowed through the server firewall"
+  type        = map(string)
+  default     = {}
+}
+
+variable "tags" {
+  description = "Additional tags to apply to all resources"
   type        = map(string)
   default     = {}
 }
