@@ -26,13 +26,13 @@ module "resource_group" {
 }
 
 resource "azurerm_key_vault" "main" {
-  name                      = var.key_vault_name
-  location                  = module.resource_group.location
-  resource_group_name       = module.resource_group.resource_group_name
-  tenant_id                 = data.azurerm_client_config.current.tenant_id
-  sku_name                  = "standard"
-  purge_protection_enabled    = false
-  rbac_authorization_enabled  = true
+  name                       = var.key_vault_name
+  location                   = module.resource_group.location
+  resource_group_name        = module.resource_group.resource_group_name
+  tenant_id                  = data.azurerm_client_config.current.tenant_id
+  sku_name                   = "standard"
+  purge_protection_enabled   = false
+  rbac_authorization_enabled = true
 }
 
 resource "azurerm_log_analytics_workspace" "main" {
