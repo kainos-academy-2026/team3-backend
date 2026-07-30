@@ -32,3 +32,33 @@ variable "identity_name" {
   type        = string
   default     = "team3-app-identity"
 }
+
+variable "db_server_name" {
+  description = "Globally unique name for the PostgreSQL Flexible Server"
+  type        = string
+  default     = "team3-postgres-dev"
+}
+
+variable "db_admin_login" {
+  description = "Administrator username for the PostgreSQL server"
+  type        = string
+  default     = "team3admin"
+}
+
+variable "db_admin_password" {
+  description = "Administrator password for the PostgreSQL server"
+  type        = string
+  sensitive   = true
+}
+
+variable "db_name" {
+  description = "Name of the database to create"
+  type        = string
+  default     = "team3"
+}
+
+variable "allowed_ip_addresses" {
+  description = "Map of label => IP address to whitelist on the server firewall"
+  type        = map(string)
+  default     = {}
+}
