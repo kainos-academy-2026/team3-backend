@@ -31,6 +31,8 @@ variable "identity_name" {
   description = "Name of the user-assigned managed identity"
   type        = string
   default     = "team3-app-identity"
+}
+
 variable "db_server_name" {
   description = "Globally unique name for the PostgreSQL Flexible Server"
   type        = string
