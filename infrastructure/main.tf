@@ -99,6 +99,8 @@ resource "azurerm_container_app" "backend" {
   }
 
   template {
+    min_replicas = 1
+    max_replicas = 1
     container {
       name   = "backend"
       image  = "${data.azurerm_container_registry.acr.login_server}/team3-backend:dev-latest"
