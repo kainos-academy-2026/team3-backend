@@ -62,3 +62,45 @@ variable "allowed_ip_addresses" {
   type        = map(string)
   default     = {}
 }
+
+variable "frontend_container_app_name" {
+  description = "Name of the frontend Azure Container App"
+  type        = string
+  default     = "team3-frontend"
+}
+
+variable "frontend_image_name" {
+  description = "Frontend image repository name in ACR"
+  type        = string
+  default     = "team3-frontend"
+}
+
+variable "frontend_image_tag" {
+  description = "Frontend image tag to deploy"
+  type        = string
+  default     = "dev-latest"
+}
+
+variable "frontend_target_port" {
+  description = "Internal container port exposed by the frontend app"
+  type        = number
+  default     = 3000
+}
+
+variable "frontend_api_base_url_secret_name" {
+  description = "Key Vault secret name containing the backend API base URL for frontend runtime configuration"
+  type        = string
+  default     = "BACKEND-API"
+}
+
+variable "frontend_session_secret_name" {
+  description = "Key Vault secret name containing the frontend session secret"
+  type        = string
+  default     = "SESSION_SECRET"
+}
+
+variable "frontend_feature_new_ui" {
+  description = "Feature flag for frontend UI rollout"
+  type        = string
+  default     = "false"
+}

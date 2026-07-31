@@ -99,6 +99,8 @@ resource "azurerm_container_app" "backend" {
   }
 
   template {
+    min_replicas = 1
+    max_replicas = 1
     container {
       name   = "backend"
       image  = "${data.azurerm_container_registry.acr.login_server}/team3-backend:dev-latest"
@@ -138,7 +140,7 @@ resource "azurerm_container_app" "backend" {
 
   secret {
     name                = "database-url"
-    key_vault_secret_id = "https://team3-kv-dev.vault.azure.net/secrets/DATABASE-URL/5883d359d85c48e5b476e3a432d45100"
+    key_vault_secret_id = "https://team3-kv-dev.vault.azure.net/secrets/DATABASE-URL/6772054210444704a670757337328f4c"
     identity            = azurerm_user_assigned_identity.main.id
   }
 
@@ -169,6 +171,82 @@ resource "azurerm_container_app" "backend" {
   secret {
     name                = "s3-bucket-name"
     key_vault_secret_id = "https://team3-kv-dev.vault.azure.net/secrets/S3-BUCKET-NAME/3163b68946c647518c7b6e15ca67c0c9"
+    identity            = azurerm_user_assigned_identity.main.id
+  }
+
+  depends_on = [
+    azurerm_role_assignment.acr_pull,
+    azurerm_role_assignment.kv_secrets_user
+  ]
+}
+
+resource "azurerm_container_app" "frontend" {
+  name                         = var.frontend_container_app_name
+  container_app_environment_id = azurerm_container_app_environment.main.id
+  resource_group_name          = module.resource_group.resource_group_name
+  revision_mode                = "Single"
+
+  identity {
+    type         = "UserAssigned"
+    identity_ids = [azurerm_user_assigned_identity.main.id]
+  }
+
+  registry {
+    server   = data.azurerm_container_registry.acr.login_server
+    identity = azurerm_user_assigned_identity.main.id
+  }
+
+  ingress {
+    external_enabled = true
+    target_port      = var.frontend_target_port
+    traffic_weight {
+      percentage      = 100
+      latest_revision = true
+    }
+  }
+
+  template {
+    min_replicas = 1
+    max_replicas = 1
+
+    container {
+      name   = "frontend"
+      image  = "${data.azurerm_container_registry.acr.login_server}/${var.frontend_image_name}:${var.frontend_image_tag}"
+      cpu    = 0.25
+      memory = "0.5Gi"
+
+      env {
+        name  = "NODE_ENV"
+        value = "production"
+      }
+      env {
+        name  = "PORT"
+        value = tostring(var.frontend_target_port)
+      }
+      env {
+        name        = "BACKEND_API"
+        secret_name = "backend-api"
+      }
+      env {
+        name        = "SESSION_SECRET"
+        secret_name = "session-secret"
+      }
+      env {
+        name  = "FEATURE_NEW_UI"
+        value = var.frontend_feature_new_ui
+      }
+    }
+  }
+
+  secret {
+    name                = "backend-api"
+    key_vault_secret_id = "https://team3-kv-dev.vault.azure.net/secrets/BACKEND-API/b896910379b346c18929ad53e3ffcf03"
+    identity            = azurerm_user_assigned_identity.main.id
+  }
+
+  secret {
+    name                = "session-secret"
+    key_vault_secret_id = "https://team3-kv-dev.vault.azure.net/secrets/SESSION-SECRET/27eba3ccf3c346eebf2bf3528b9f2562"
     identity            = azurerm_user_assigned_identity.main.id
   }
 

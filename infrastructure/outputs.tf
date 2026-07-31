@@ -17,3 +17,13 @@ output "postgres_fqdn" {
   description = "The FQDN of the Azure PostgreSQL Flexible Server"
   value       = module.postgres.server_fqdn
 }
+
+output "frontend_fqdn" {
+  description = "The public FQDN of the frontend Container App"
+  value       = azurerm_container_app.frontend.latest_revision_fqdn
+}
+
+output "frontend_url" {
+  description = "The public HTTPS URL of the frontend Container App"
+  value       = "https://${azurerm_container_app.frontend.latest_revision_fqdn}"
+}
