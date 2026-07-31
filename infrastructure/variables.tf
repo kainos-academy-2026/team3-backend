@@ -78,7 +78,7 @@ variable "frontend_image_name" {
 variable "frontend_image_tag" {
   description = "Frontend image tag to deploy"
   type        = string
-  default     = "dev-latest"
+  default     = "v2.0.0"
 }
 
 variable "frontend_target_port" {
