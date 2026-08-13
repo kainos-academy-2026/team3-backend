@@ -6,7 +6,7 @@ on:
   pull_request:
     branches: [main]
   schedule:
-    - cron: '0 19 * * *'
+    - cron: "0 19 * * *"
   workflow_dispatch:
 
 env:
@@ -23,8 +23,23 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  gitleaks:
+  name: Scan for Secrets
+  runs-on: ubuntu-latest
+  permissions:
+    contents: read
+  steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Scan repository history
+      uses: gitleaks/gitleaks-action@v2
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   test:
     name: Run Tests & Lint
+    needs: gitleaks
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
